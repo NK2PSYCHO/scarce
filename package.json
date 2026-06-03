@@ -1,6 +1,6 @@
 {
   "name": "scarce",
-  "displayName": "scarce",
+  "displayName": "Scarce",
   "description": "Pilot description",
   "version": "0.0.1",
   "engines": {
@@ -12,12 +12,25 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "scarce.helloWorld",
-        "title": "Hello World"
-      }
-    ]
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "scarce",
+          "title": "Scarce",
+          "icon": "resources/scarce-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "scarce": [
+        {
+          "type": "webview",
+          "id": "scarce-to-do",
+          "name": "TO DOs",
+          "icon": "resources/scarce-icon.svg"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
