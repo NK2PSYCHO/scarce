@@ -1,26 +1,44 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+const VIEW_ID = "scarce-to-do";
+
 export function activate(context: vscode.ExtensionContext) {
+  const provider = new ScarceTodoProvider(context.extensionUri);
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "scarce" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('scarce.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from scarce!');
-	});
-
-	context.subscriptions.push(disposable);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(VIEW_ID, provider),
+  );
 }
 
-// This method is called when your extension is deactivated
+class ScarceTodoProvider implements vscode.WebviewViewProvider {
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
+  resolveWebviewView(webviewView: vscode.WebviewView) {
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this.extensionUri],
+    };
+
+    webviewView.webview.html = this.getHtml();
+  }
+
+  private getHtml(): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+body {
+    font-family: var(--vscode-font-family);
+    padding: 12px;
+}
+</style>
+</head>
+<body>
+    <h3>Scarce Loaded</h3>
+</body>
+</html>`;
+  }
+}
+
 export function deactivate() {}
