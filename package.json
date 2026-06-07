@@ -12,6 +12,21 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "scarce.addToScarce",
+        "title": "Add to Scarce"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "scarce.addToScarce",
+          "when": "editorHasSelection",
+          "group": "scarce@1"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {
