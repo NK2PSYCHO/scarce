@@ -8,6 +8,40 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider),
   );
+
+  const addToScarce = vscode.commands.registerCommand(
+    "scarce.addToScarce",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      const selection = editor.selection;
+      if (selection.isEmpty) {
+        vscode.window.showWarningMessage("Scarce: No text selected.");
+        return;
+      }
+
+      const selectedText = editor.document.getText(selection);
+      const filePath = editor.document.uri.fsPath;
+      const startLine = selection.start.line + 1;
+      const endLine = selection.end.line + 1;
+
+      vscode.window.showInformationMessage(
+        `Scarce captured: ${filePath} | Lines ${startLine}–${endLine} | "${selectedText.slice(0, 60)}${selectedText.length > 60 ? "…" : ""}"`,
+      );
+
+      console.log("[Scarce] addToScarce triggered", {
+        filePath,
+        startLine,
+        endLine,
+        selectedText,
+      });
+    },
+  );
+
+  context.subscriptions.push(addToScarce);
 }
 
 class ScarceTodoProvider implements vscode.WebviewViewProvider {
