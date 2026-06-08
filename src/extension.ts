@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { ScarceItem } from "./types/index";
 
 const VIEW_ID = "scarce-to-do";
 
@@ -28,16 +29,22 @@ export function activate(context: vscode.ExtensionContext) {
       const startLine = selection.start.line + 1;
       const endLine = selection.end.line + 1;
 
+      const item: ScarceItem = {
+        id: `${Date.now()}`,
+        codeSnapshot: selectedText,
+        filepath: filePath,
+        startLine,
+        endLine,
+        comment: "",
+        severity: "normal",
+        timestamp: Date.now(),
+      };
+
       vscode.window.showInformationMessage(
         `Scarce captured: ${filePath} | Lines ${startLine}–${endLine} | "${selectedText.slice(0, 60)}${selectedText.length > 60 ? "…" : ""}"`,
       );
 
-      console.log("[Scarce] addToScarce triggered", {
-        filePath,
-        startLine,
-        endLine,
-        selectedText,
-      });
+      console.log("[Scarce] item captured", item);
     },
   );
 
