@@ -2,14 +2,13 @@ export type SeverityLevel = "normal" | "high" | "critical";
 
 export interface ScarceItem {
   id: string;
-  text: string;
+  codeSnapshot: string;
   filepath: string;
   startLine: number;
   endLine: number;
   comment: string;
   severity: SeverityLevel;
   timestamp: number;
-  codeSnapshot: string;
 }
 
 export interface SeverityBucket {
