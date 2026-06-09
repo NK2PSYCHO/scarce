@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { ScarceItem } from "./types/index";
+import { ScarceItem, SeverityLevel } from "./types/index";
 
-const VIEW_ID = "scarce-to-do";
+const VIEW_ID = "scarce-cairns";
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new ScarceTodoProvider(context.extensionUri);
@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const addToScarce = vscode.commands.registerCommand(
     "scarce.addToScarce",
-    () => {
+    async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -29,19 +29,46 @@ export function activate(context: vscode.ExtensionContext) {
       const startLine = selection.start.line + 1;
       const endLine = selection.end.line + 1;
 
+      const comment = await vscode.window.showInputBox({
+        title: "Scarce — Add Context",
+        prompt: "Why are you saving this for ?",
+        placeHolder: "Add a note for context",
+        ignoreFocusOut: true,
+      });
+
+      if (comment === undefined) {
+        return;
+      }
+
+      const severityOptions = [
+        { label: "$(info) Normal", description: "Low priority, fix when possible", value: "normal" },
+        { label: "$(warning) High", description: "Should be fixed soon", value: "high" },
+        { label: "$(error) Critical", description: "Must be fixed — will cause issues", value: "critical" },
+      ];
+
+      const picked = await vscode.window.showQuickPick(severityOptions, {
+        title: "Scarce — Select Severity",
+        placeHolder: "How urgent is this?",
+        ignoreFocusOut: true,
+      });
+
+      if (!picked) {
+        return;
+      }
+
       const item: ScarceItem = {
         id: `${Date.now()}`,
         codeSnapshot: selectedText,
         filepath: filePath,
         startLine,
         endLine,
-        comment: "",
-        severity: "normal",
+        comment,
+        severity: picked.value as SeverityLevel,
         timestamp: Date.now(),
       };
 
       vscode.window.showInformationMessage(
-        `Scarce captured: ${filePath} | Lines ${startLine}–${endLine} | "${selectedText.slice(0, 60)}${selectedText.length > 60 ? "…" : ""}"`,
+        `Scarce saved [${item.severity.toUpperCase()}]: "${comment || "no comment"}" at ${filePath} L${startLine}`,
       );
 
       console.log("[Scarce] item captured", item);
@@ -59,7 +86,6 @@ class ScarceTodoProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [this.extensionUri],
     };
-
     webviewView.webview.html = this.getHtml();
   }
 
