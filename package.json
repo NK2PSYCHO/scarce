@@ -40,8 +40,8 @@
       "scarce": [
         {
           "type": "webview",
-          "id": "scarce-to-do",
-          "name": "TO DOs",
+          "id": "scarce-cairns",
+          "name": "Cairns",
           "icon": "resources/scarce-icon.svg"
         }
       ]
