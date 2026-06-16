@@ -13,20 +13,23 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider),
   );
 
-  const fileOpenListener = vscode.workspace.onDidOpenTextDocument(
-    (document) => {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders) {
-        return;
-      }
+  const checkAndNotify = (document: vscode.TextDocument) => {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+      return;
+    }
 
-      const repoRoot = workspaceFolders[0].uri.fsPath;
-      const items = getItemsForFile(repoRoot, document.uri.fsPath);
-      notifyForItems(items, () => provider.reveal());
-    },
-  );
+    const repoRoot = workspaceFolders[0].uri.fsPath;
+    const items = getItemsForFile(repoRoot, document.uri.fsPath);
+    notifyForItems(items, () => provider.reveal());
+  };
 
-  context.subscriptions.push(fileOpenListener);
+  const fileOpenListener =
+    vscode.workspace.onDidOpenTextDocument(checkAndNotify);
+  const fileCloseListener =
+    vscode.workspace.onDidCloseTextDocument(checkAndNotify);
+
+  context.subscriptions.push(fileOpenListener, fileCloseListener);
 
   const addToScarce = vscode.commands.registerCommand(
     "scarce.addToScarce",
@@ -104,8 +107,9 @@ export function activate(context: vscode.ExtensionContext) {
 
       addItem(repoRoot, item);
 
+      const commentPart = comment ? `: "${comment}"` : "";
       vscode.window.showInformationMessage(
-        `Scarce saved [${item.severity.toUpperCase()}]: "${comment || "no comment"}" at ${filePath} L${startLine}`,
+        `Scarce saved [${item.severity.toUpperCase()}]${commentPart}`,
       );
 
       console.log("[Scarce] item saved", item);
@@ -130,7 +134,11 @@ class ScarceTodoProvider implements vscode.WebviewViewProvider {
   }
 
   public reveal(): void {
-    this.view?.show(true);
+    if (this.view) {
+      this.view.show(true);
+    } else {
+      void vscode.commands.executeCommand("workbench.view.extension.scarce");
+    }
   }
 
   private getHtml(): string {
