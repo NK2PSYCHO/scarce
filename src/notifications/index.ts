@@ -44,7 +44,7 @@ async function showCriticalModal(
   reveal: () => void,
 ): Promise<void> {
   const choice = await vscode.window.showWarningMessage(
-    `Scarce: ${summary} — review before continuing.`,
+    `Scarce: ${summary} cairns present — review before continuing.`,
     { modal: true },
     "Open Cairns",
   );
@@ -59,7 +59,7 @@ async function showHighToast(
   reveal: () => void,
 ): Promise<void> {
   const choice = await vscode.window.showWarningMessage(
-    `Scarce: ${summary} in this file.`,
+    `Scarce: ${summary} cairns present in this file.`,
     "Open Cairns",
   );
 
@@ -70,7 +70,7 @@ async function showHighToast(
 
 function showNormalStatusBar(summary: string): void {
   vscode.window.setStatusBarMessage(
-    `$(info) Scarce: ${summary} in this file`,
+    `$(info) Scarce: ${summary} cairns present in this file`,
     5000,
   );
 }
