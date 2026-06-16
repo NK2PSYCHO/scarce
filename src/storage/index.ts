@@ -70,7 +70,8 @@ export function getItemsForFile(
   filepath: string,
 ): ScarceItem[] {
   const storage = readStorage();
-  const bucket = storage.repos?.[repoRoot]?.[filepath];
+  const relPath = path.relative(repoRoot, filepath);
+  const bucket = storage.repos?.[repoRoot]?.[relPath];
   if (!bucket) {
     return [];
   }
@@ -88,7 +89,8 @@ export function removeItem(
   itemId: string,
 ): void {
   const storage = readStorage();
-  const bucket = storage.repos?.[repoRoot]?.[filepath];
+  const relPath = path.relative(repoRoot, filepath);
+  const bucket = storage.repos?.[repoRoot]?.[relPath];
   if (!bucket) {
     return;
   }
