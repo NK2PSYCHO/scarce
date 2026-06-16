@@ -78,6 +78,25 @@ export function getItemsForFile(
   return [...bucket.critical, ...bucket.high, ...bucket.normal];
 }
 
+export function getItemsForRepo(
+  repoRoot: string,
+): Record<string, ScarceItem[]> {
+  const storage = readStorage();
+  const fileRegistry = storage.repos?.[repoRoot];
+  if (!fileRegistry) {
+    return {};
+  }
+
+  const result: Record<string, ScarceItem[]> = {};
+  for (const [relPath, bucket] of Object.entries(fileRegistry)) {
+    const items = [...bucket.critical, ...bucket.high, ...bucket.normal];
+    if (items.length > 0) {
+      result[relPath] = items;
+    }
+  }
+  return result;
+}
+
 export function getAllRepos(): string[] {
   const storage = readStorage();
   return Object.keys(storage.repos);
