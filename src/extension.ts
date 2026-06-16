@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { ScarceItem, SeverityLevel } from "./types/index";
+import { addItem } from "./storage/index";
 
 const VIEW_ID = "scarce-cairns";
 
@@ -31,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       const comment = await vscode.window.showInputBox({
         title: "Scarce — Add Context",
-        prompt: "Why are you saving this for ?",
+        prompt: "Why are you saving this?",
         placeHolder: "Add a note for context",
         ignoreFocusOut: true,
       });
@@ -41,9 +43,21 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       const severityOptions = [
-        { label: "$(info) Normal", description: "Low priority, fix when possible", value: "normal" },
-        { label: "$(warning) High", description: "Should be fixed soon", value: "high" },
-        { label: "$(error) Critical", description: "Must be fixed — will cause issues", value: "critical" },
+        {
+          label: "$(info) Normal",
+          description: "Low priority, fix when possible",
+          value: "normal",
+        },
+        {
+          label: "$(warning) High",
+          description: "Should be fixed soon",
+          value: "high",
+        },
+        {
+          label: "$(error) Critical",
+          description: "Must be fixed — will cause issues",
+          value: "critical",
+        },
       ];
 
       const picked = await vscode.window.showQuickPick(severityOptions, {
@@ -67,11 +81,18 @@ export function activate(context: vscode.ExtensionContext) {
         timestamp: Date.now(),
       };
 
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      const repoRoot = workspaceFolders
+        ? workspaceFolders[0].uri.fsPath
+        : path.dirname(filePath);
+
+      addItem(repoRoot, item);
+
       vscode.window.showInformationMessage(
         `Scarce saved [${item.severity.toUpperCase()}]: "${comment || "no comment"}" at ${filePath} L${startLine}`,
       );
 
-      console.log("[Scarce] item captured", item);
+      console.log("[Scarce] item saved", item);
     },
   );
 
