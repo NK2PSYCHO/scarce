@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { ScarceItem, SeverityLevel } from "./types/index";
-import { addItem } from "./storage/index";
+import { addItem, getItemsForFile } from "./storage/index";
+import { notifyForItems } from "./notifications/index";
 
 const VIEW_ID = "scarce-cairns";
 
@@ -11,6 +12,21 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider),
   );
+
+  const fileOpenListener = vscode.workspace.onDidOpenTextDocument(
+    (document) => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders) {
+        return;
+      }
+
+      const repoRoot = workspaceFolders[0].uri.fsPath;
+      const items = getItemsForFile(repoRoot, document.uri.fsPath);
+      notifyForItems(items, () => provider.reveal());
+    },
+  );
+
+  context.subscriptions.push(fileOpenListener);
 
   const addToScarce = vscode.commands.registerCommand(
     "scarce.addToScarce",
@@ -100,14 +116,21 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 class ScarceTodoProvider implements vscode.WebviewViewProvider {
+  private view?: vscode.WebviewView;
+
   constructor(private readonly extensionUri: vscode.Uri) {}
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
+    this.view = webviewView;
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this.extensionUri],
     };
     webviewView.webview.html = this.getHtml();
+  }
+
+  public reveal(): void {
+    this.view?.show(true);
   }
 
   private getHtml(): string {
