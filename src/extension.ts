@@ -3,11 +3,10 @@ import * as path from "path";
 import { ScarceItem, SeverityLevel } from "./types/index";
 import { addItem, getItemsForFile } from "./storage/index";
 import { notifyForItems } from "./notifications/index";
-
-const VIEW_ID = "scarce-cairns";
+import { CairnsViewProvider, VIEW_ID } from "./sidebar/index";
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new ScarceTodoProvider(context.extensionUri);
+  const provider = new CairnsViewProvider(context.extensionUri);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider),
@@ -106,6 +105,7 @@ export function activate(context: vscode.ExtensionContext) {
         : path.dirname(filePath);
 
       addItem(repoRoot, item);
+      provider.refresh();
 
       const commentPart = comment ? `: "${comment}"` : "";
       vscode.window.showInformationMessage(
@@ -117,47 +117,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(addToScarce);
-}
-
-class ScarceTodoProvider implements vscode.WebviewViewProvider {
-  private view?: vscode.WebviewView;
-
-  constructor(private readonly extensionUri: vscode.Uri) {}
-
-  resolveWebviewView(webviewView: vscode.WebviewView) {
-    this.view = webviewView;
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.extensionUri],
-    };
-    webviewView.webview.html = this.getHtml();
-  }
-
-  public reveal(): void {
-    if (this.view) {
-      this.view.show(true);
-    } else {
-      void vscode.commands.executeCommand("workbench.view.extension.scarce");
-    }
-  }
-
-  private getHtml(): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<style>
-body {
-    font-family: var(--vscode-font-family);
-    padding: 12px;
-}
-</style>
-</head>
-<body>
-    <h3>Scarce Loaded</h3>
-</body>
-</html>`;
-  }
 }
 
 export function deactivate() {}
