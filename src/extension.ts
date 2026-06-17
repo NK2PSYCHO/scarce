@@ -12,7 +12,17 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider),
   );
 
+  const sweptOnStartup = new Set<string>();
+
   const checkAndNotify = (document: vscode.TextDocument) => {
+    if (document.uri.scheme !== "file") {
+      return;
+    }
+
+    if (sweptOnStartup.delete(document.uri.fsPath)) {
+      return;
+    }
+
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
       return;
@@ -25,10 +35,38 @@ export function activate(context: vscode.ExtensionContext) {
 
   const fileOpenListener =
     vscode.workspace.onDidOpenTextDocument(checkAndNotify);
-  const fileCloseListener =
-    vscode.workspace.onDidCloseTextDocument(checkAndNotify);
 
-  context.subscriptions.push(fileOpenListener, fileCloseListener);
+  context.subscriptions.push(fileOpenListener);
+
+  const startupWorkspaceFolders = vscode.workspace.workspaceFolders;
+  if (startupWorkspaceFolders) {
+    const repoRoot = startupWorkspaceFolders[0].uri.fsPath;
+    const openFileUris = vscode.window.tabGroups.all
+      .flatMap((group) => group.tabs)
+      .map((tab) =>
+        tab.input instanceof vscode.TabInputText ? tab.input.uri : undefined,
+      )
+      .filter(
+        (uri): uri is vscode.Uri => uri !== undefined && uri.scheme === "file",
+      );
+
+    const filesWithItems = new Set<string>();
+    const startupItems: ScarceItem[] = [];
+
+    for (const uri of openFileUris) {
+      sweptOnStartup.add(uri.fsPath);
+
+      const items = getItemsForFile(repoRoot, uri.fsPath);
+      if (items.length > 0) {
+        filesWithItems.add(uri.fsPath);
+        startupItems.push(...items);
+      }
+    }
+
+    notifyForItems(startupItems, () => provider.reveal(), {
+      fileCount: filesWithItems.size,
+    });
+  }
 
   const addToScarce = vscode.commands.registerCommand(
     "scarce.addToScarce",
@@ -50,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
       const endLine = selection.end.line + 1;
 
       const comment = await vscode.window.showInputBox({
-        title: "Scarce — Add Context",
+        title: "Scarce: Add Context",
         prompt: "Why are you saving this?",
         placeHolder: "Add a note for context",
         ignoreFocusOut: true,
@@ -73,13 +111,13 @@ export function activate(context: vscode.ExtensionContext) {
         },
         {
           label: "$(error) Critical",
-          description: "Must be fixed — will cause issues",
+          description: "Must be fixed, will cause issues",
           value: "critical",
         },
       ];
 
       const picked = await vscode.window.showQuickPick(severityOptions, {
-        title: "Scarce — Select Severity",
+        title: "Scarce: Select Severity",
         placeHolder: "How urgent is this?",
         ignoreFocusOut: true,
       });
