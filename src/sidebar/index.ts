@@ -5,9 +5,14 @@ import { getItemsForRepo, removeItem } from "../storage/index";
 
 export const VIEW_ID = "scarce-cairns";
 
+interface RepoSection {
+  repoRoot: string;
+  repoName: string;
+  itemsByFile: Record<string, ScarceItem[]>;
+}
+
 export class CairnsViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
-  private repoRoot?: string;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -20,7 +25,7 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message) => {
       if (message.type === "delete") {
-        this.handleDelete(message.relPath, message.itemId);
+        this.handleDelete(message.repoRoot, message.relPath, message.itemId);
       }
     });
 
@@ -36,59 +41,90 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
   }
 
   public refresh(): void {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    this.repoRoot = workspaceFolders
-      ? workspaceFolders[0].uri.fsPath
-      : undefined;
-
     if (!this.view) {
       return;
     }
 
-    if (!this.repoRoot) {
-      this.view.webview.html = this.getHtml({}, undefined);
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+      this.view.webview.html = this.getHtml([]);
       return;
     }
 
-    const itemsByFile = getItemsForRepo(this.repoRoot);
-    this.view.webview.html = this.getHtml(itemsByFile, this.repoRoot);
+    const sections: RepoSection[] = workspaceFolders.map((folder) => ({
+      repoRoot: folder.uri.fsPath,
+      repoName: folder.name,
+      itemsByFile: getItemsForRepo(folder.uri.fsPath),
+    }));
+
+    this.view.webview.html = this.getHtml(sections);
   }
 
-  private handleDelete(relPath: string, itemId: string): void {
-    if (!this.repoRoot) {
-      return;
-    }
-    const fullPath = path.join(this.repoRoot, relPath);
-    removeItem(this.repoRoot, fullPath, itemId);
+  private handleDelete(
+    repoRoot: string,
+    relPath: string,
+    itemId: string,
+  ): void {
+    const fullPath = path.join(repoRoot, relPath);
+    removeItem(repoRoot, fullPath, itemId);
     this.refresh();
   }
 
-  private getHtml(
-    itemsByFile: Record<string, ScarceItem[]>,
-    repoRoot: string | undefined,
-  ): string {
-    if (!repoRoot) {
+  private getHtml(sections: RepoSection[]): string {
+    if (sections.length === 0) {
       return this.wrapHtml(
         `<p class="empty">Open a workspace folder to see cairns.</p>`,
       );
     }
 
-    const files = Object.keys(itemsByFile);
+    const nonEmptySections = sections.filter(
+      (section) => Object.keys(section.itemsByFile).length > 0,
+    );
 
-    if (files.length === 0) {
+    if (nonEmptySections.length === 0) {
       return this.wrapHtml(
         `<p class="empty">No cairns yet. Select code and right-click → "Add to Scarce".</p>`,
       );
     }
 
-    const fileSections = files
-      .map((relPath) => this.renderFileSection(relPath, itemsByFile[relPath]))
+    const showRepoHeaders = sections.length > 1;
+
+    const html = nonEmptySections
+      .map((section) => this.renderRepoSection(section, showRepoHeaders))
       .join("\n");
 
-    return this.wrapHtml(fileSections);
+    return this.wrapHtml(html);
   }
 
-  private renderFileSection(relPath: string, items: ScarceItem[]): string {
+  private renderRepoSection(section: RepoSection, showHeader: boolean): string {
+    const files = Object.keys(section.itemsByFile);
+    const fileSections = files
+      .map((relPath) =>
+        this.renderFileSection(
+          section.repoRoot,
+          relPath,
+          section.itemsByFile[relPath],
+        ),
+      )
+      .join("\n");
+
+    if (!showHeader) {
+      return fileSections;
+    }
+
+    return `
+      <div class="repo-group">
+        <div class="repo-header">${this.escapeHtml(section.repoName)}</div>
+        ${fileSections}
+      </div>
+    `;
+  }
+
+  private renderFileSection(
+    repoRoot: string,
+    relPath: string,
+    items: ScarceItem[],
+  ): string {
     const sorted = [...items].sort((a, b) => {
       const order: Record<SeverityLevel, number> = {
         critical: 0,
@@ -99,7 +135,7 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
     });
 
     const itemsHtml = sorted
-      .map((item) => this.renderItem(relPath, item))
+      .map((item) => this.renderItem(repoRoot, relPath, item))
       .join("\n");
 
     return `
@@ -110,7 +146,11 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
     `;
   }
 
-  private renderItem(relPath: string, item: ScarceItem): string {
+  private renderItem(
+    repoRoot: string,
+    relPath: string,
+    item: ScarceItem,
+  ): string {
     const lineLabel =
       item.startLine === item.endLine
         ? `L${item.startLine}`
@@ -127,11 +167,11 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
       : "";
 
     return `
-      <div class="cairn" data-severity="${item.severity}">
+      <div class="cairn" data-severity="${item.severity}" data-reporoot="${this.escapeHtml(repoRoot)}" data-relpath="${this.escapeHtml(relPath)}" data-itemid="${this.escapeHtml(item.id)}">
         <div class="cairn-top">
           <span class="badge badge-${item.severity}">${item.severity}</span>
           <span class="line">${lineLabel}</span>
-          <button class="delete-btn" onclick="deleteCairn('${relPath}', '${item.id}')" title="Delete">✕</button>
+          <button class="delete-btn" data-action="delete" title="Delete">✕</button>
         </div>
         ${commentHtml}
         <pre class="snapshot">${snapshotPreview}</pre>
@@ -165,6 +205,15 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
     opacity: 0.7;
     padding: 16px 4px;
     text-align: center;
+  }
+  .repo-group {
+    margin-bottom: 12px;
+  }
+  .repo-header {
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 0;
+    margin-bottom: 4px;
   }
   .file-group {
     margin-bottom: 16px;
@@ -246,9 +295,22 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
   ${bodyContent}
   <script>
     const vscode = acquireVsCodeApi();
-    function deleteCairn(relPath, itemId) {
-      vscode.postMessage({ type: "delete", relPath, itemId });
-    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest('[data-action="delete"]');
+      if (!button) {
+        return;
+      }
+      const cairn = button.closest(".cairn");
+      if (!cairn) {
+        return;
+      }
+      vscode.postMessage({
+        type: "delete",
+        repoRoot: cairn.dataset.reporoot,
+        relPath: cairn.dataset.relpath,
+        itemId: cairn.dataset.itemid,
+      });
+    });
   </script>
 </body>
 </html>`;

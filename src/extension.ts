@@ -1,9 +1,21 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import { randomUUID } from "crypto";
 import { ScarceItem, SeverityLevel } from "./types/index";
 import { addItem, getItemsForFile } from "./storage/index";
 import { notifyForItems } from "./notifications/index";
 import { CairnsViewProvider, VIEW_ID } from "./sidebar/index";
+
+function resolveRepoRoot(uri: vscode.Uri): string {
+  const folder = vscode.workspace.getWorkspaceFolder(uri);
+  if (folder) {
+    return folder.uri.fsPath;
+  }
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  return workspaceFolders
+    ? workspaceFolders[0].uri.fsPath
+    : path.dirname(uri.fsPath);
+}
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new CairnsViewProvider(context.extensionUri);
@@ -23,12 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-      return;
-    }
-
-    const repoRoot = workspaceFolders[0].uri.fsPath;
+    const repoRoot = resolveRepoRoot(document.uri);
     const items = getItemsForFile(repoRoot, document.uri.fsPath);
     notifyForItems(items, () => provider.reveal());
   };
@@ -40,7 +47,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   const startupWorkspaceFolders = vscode.workspace.workspaceFolders;
   if (startupWorkspaceFolders) {
-    const repoRoot = startupWorkspaceFolders[0].uri.fsPath;
     const openFileUris = vscode.window.tabGroups.all
       .flatMap((group) => group.tabs)
       .map((tab) =>
@@ -56,6 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
     for (const uri of openFileUris) {
       sweptOnStartup.add(uri.fsPath);
 
+      const repoRoot = resolveRepoRoot(uri);
       const items = getItemsForFile(repoRoot, uri.fsPath);
       if (items.length > 0) {
         filesWithItems.add(uri.fsPath);
@@ -127,7 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       const item: ScarceItem = {
-        id: `${Date.now()}`,
+        id: randomUUID(),
         codeSnapshot: selectedText,
         filepath: filePath,
         startLine,
@@ -137,10 +144,7 @@ export function activate(context: vscode.ExtensionContext) {
         timestamp: Date.now(),
       };
 
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      const repoRoot = workspaceFolders
-        ? workspaceFolders[0].uri.fsPath
-        : path.dirname(filePath);
+      const repoRoot = resolveRepoRoot(editor.document.uri);
 
       addItem(repoRoot, item);
       provider.refresh();
@@ -149,8 +153,6 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage(
         `Scarce saved [${item.severity.toUpperCase()}]${commentPart}`,
       );
-
-      console.log("[Scarce] item saved", item);
     },
   );
 
