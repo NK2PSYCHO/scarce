@@ -118,5 +118,18 @@ export function removeItem(
     bucket[severity] = bucket[severity].filter((i) => i.id !== itemId);
   });
 
+  const isEmpty =
+    bucket.critical.length === 0 &&
+    bucket.high.length === 0 &&
+    bucket.normal.length === 0;
+
+  if (isEmpty) {
+    delete storage.repos[repoRoot][relPath];
+
+    if (Object.keys(storage.repos[repoRoot]).length === 0) {
+      delete storage.repos[repoRoot];
+    }
+  }
+
   writeStorage(storage);
 }
