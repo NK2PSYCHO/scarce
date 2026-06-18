@@ -146,13 +146,20 @@ export function activate(context: vscode.ExtensionContext) {
 
       const repoRoot = resolveRepoRoot(editor.document.uri);
 
-      addItem(repoRoot, item);
+      const { existingCount } = addItem(repoRoot, item);
       provider.refresh();
 
       const commentPart = comment ? `: "${comment}"` : "";
-      vscode.window.showInformationMessage(
-        `Scarce saved [${item.severity.toUpperCase()}]${commentPart}`,
-      );
+      const savedMessage = `Scarce saved [${item.severity.toUpperCase()}]${commentPart}`;
+
+      if (existingCount > 0) {
+        const cairnWord = existingCount === 1 ? "cairn" : "cairns";
+        vscode.window.showWarningMessage(
+          `${savedMessage} (${existingCount} other ${cairnWord} share these line numbers)`,
+        );
+      } else {
+        vscode.window.showInformationMessage(savedMessage);
+      }
     },
   );
 

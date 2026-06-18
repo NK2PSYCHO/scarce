@@ -36,7 +36,11 @@ export function writeStorage(storage: ScarceStorage): void {
   }
 }
 
-export function addItem(repoRoot: string, item: ScarceItem): void {
+export interface AddItemResult {
+  existingCount: number;
+}
+
+export function addItem(repoRoot: string, item: ScarceItem): AddItemResult {
   const storage = readStorage();
   const relPath = path.relative(repoRoot, item.filepath);
 
@@ -50,19 +54,19 @@ export function addItem(repoRoot: string, item: ScarceItem): void {
 
   const bucket = storage.repos[repoRoot][relPath];
 
-  const isDuplicate = [
+  const existingCount = [
     ...bucket.critical,
     ...bucket.high,
     ...bucket.normal,
-  ].some((i) => i.startLine === item.startLine && i.endLine === item.endLine);
-
-  if (isDuplicate) {
-    return;
-  }
+  ].filter(
+    (i) => i.startLine === item.startLine && i.endLine === item.endLine,
+  ).length;
 
   bucket[item.severity].push(item);
 
   writeStorage(storage);
+
+  return { existingCount };
 }
 
 export function getItemsForFile(
