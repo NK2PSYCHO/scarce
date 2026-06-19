@@ -17,8 +17,7 @@ const PROJECT_ROOT_MARKERS = [
   ".vscode",
 ];
 
-function findMarkerProjectRoot(startDir: string): string | null {
-  const home = os.homedir();
+function findMarkerProjectRoot(startDir: string, ceiling: string): string | null {
   let current = startDir;
 
   while (true) {
@@ -28,7 +27,7 @@ function findMarkerProjectRoot(startDir: string): string | null {
       }
     }
 
-    if (current === home) {
+    if (current === ceiling) {
       return null;
     }
 
@@ -41,18 +40,21 @@ function findMarkerProjectRoot(startDir: string): string | null {
   }
 }
 
-function resolveRepoRoot(uri: vscode.Uri): string {
+function resolveRepoRoot(uri: vscode.Uri): { root: string; isFallback: boolean } {
   const folder = vscode.workspace.getWorkspaceFolder(uri);
-  if (folder) {
-    return folder.uri.fsPath;
-  }
 
-  const markerRoot = findMarkerProjectRoot(path.dirname(uri.fsPath));
+  const ceiling = folder?.uri.fsPath ?? os.homedir();
+
+  const markerRoot = findMarkerProjectRoot(path.dirname(uri.fsPath), ceiling);
   if (markerRoot) {
-    return markerRoot;
+    return { root: markerRoot, isFallback: false };
   }
 
-  return path.dirname(uri.fsPath);
+  if (folder) {
+    return { root: folder.uri.fsPath, isFallback: false };
+  }
+
+  return { root: path.dirname(uri.fsPath), isFallback: true };
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -73,7 +75,7 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const repoRoot = resolveRepoRoot(document.uri);
+    const { root: repoRoot } = resolveRepoRoot(document.uri);
     const items = getItemsForFile(repoRoot, document.uri.fsPath);
     notifyForItems(items, () => provider.reveal());
   };
@@ -100,7 +102,7 @@ export function activate(context: vscode.ExtensionContext) {
     for (const uri of openFileUris) {
       sweptOnStartup.add(uri.fsPath);
 
-      const repoRoot = resolveRepoRoot(uri);
+      const { root: repoRoot } = resolveRepoRoot(uri);
       const items = getItemsForFile(repoRoot, uri.fsPath);
       if (items.length > 0) {
         filesWithItems.add(uri.fsPath);
@@ -182,7 +184,7 @@ export function activate(context: vscode.ExtensionContext) {
         timestamp: Date.now(),
       };
 
-      const repoRoot = resolveRepoRoot(editor.document.uri);
+      const { root: repoRoot, isFallback } = resolveRepoRoot(editor.document.uri);
 
       const { existingCount } = addItem(repoRoot, item);
       provider.refresh();
@@ -190,7 +192,13 @@ export function activate(context: vscode.ExtensionContext) {
       const commentPart = comment ? `: "${comment}"` : "";
       const savedMessage = `Scarce saved [${item.severity.toUpperCase()}]${commentPart}`;
 
-      if (existingCount > 0) {
+      if (isFallback) {
+        vscode.window.showWarningMessage(
+          `${savedMessage} — no project root found. ` +
+            `This cairn was saved under the file's own folder and may not be ` +
+            `found again if you open a workspace or initialise a project here later.`,
+        );
+      } else if (existingCount > 0) {
         const cairnWord = existingCount === 1 ? "cairn" : "cairns";
         vscode.window.showWarningMessage(
           `${savedMessage} (${existingCount} other ${cairnWord} share these line numbers)`,
