@@ -17,7 +17,10 @@ const PROJECT_ROOT_MARKERS = [
   ".vscode",
 ];
 
-function findMarkerProjectRoot(startDir: string, ceiling: string): string | null {
+function findMarkerProjectRoot(
+  startDir: string,
+  ceiling: string,
+): string | null {
   let current = startDir;
 
   while (true) {
@@ -40,21 +43,38 @@ function findMarkerProjectRoot(startDir: string, ceiling: string): string | null
   }
 }
 
-function resolveRepoRoot(uri: vscode.Uri): { root: string; isFallback: boolean } {
+function normalizePath(p: string): string {
+  try {
+    return fs
+      .realpathSync(p)
+      .replace(/[\\/]+$/, "")
+      .toLowerCase();
+  } catch {
+    return path
+      .normalize(p)
+      .replace(/[\\/]+$/, "")
+      .toLowerCase();
+  }
+}
+
+function resolveRepoRoot(uri: vscode.Uri): {
+  root: string;
+  isFallback: boolean;
+} {
   const folder = vscode.workspace.getWorkspaceFolder(uri);
 
   const ceiling = folder?.uri.fsPath ?? os.homedir();
 
   const markerRoot = findMarkerProjectRoot(path.dirname(uri.fsPath), ceiling);
   if (markerRoot) {
-    return { root: markerRoot, isFallback: false };
+    return { root: normalizePath(markerRoot), isFallback: false };
   }
 
   if (folder) {
-    return { root: folder.uri.fsPath, isFallback: false };
+    return { root: normalizePath(folder.uri.fsPath), isFallback: false };
   }
 
-  return { root: path.dirname(uri.fsPath), isFallback: true };
+  return { root: normalizePath(path.dirname(uri.fsPath)), isFallback: true };
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -80,12 +100,13 @@ export function activate(context: vscode.ExtensionContext) {
     notifyForItems(items, () => provider.reveal());
   };
 
-  const fileOpenListener =
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
+  const fileOpenListener = vscode.window.onDidChangeActiveTextEditor(
+    (editor) => {
       if (editor) {
         checkAndNotify(editor.document);
       }
-    });
+    },
+  );
 
   context.subscriptions.push(fileOpenListener);
 
@@ -98,21 +119,21 @@ export function activate(context: vscode.ExtensionContext) {
       (uri): uri is vscode.Uri => uri !== undefined && uri.scheme === "file",
     );
 
-    const filesWithItems = new Set<string>();
-    const startupItems: ScarceItem[] = [];
+  const filesWithItems = new Set<string>();
+  const startupItems: ScarceItem[] = [];
 
-    for (const uri of openFileUris) {
-      sweptOnStartup.add(uri.fsPath);
+  for (const uri of openFileUris) {
+    sweptOnStartup.add(uri.fsPath);
 
-      const { root: repoRoot } = resolveRepoRoot(uri);
-      const items = getItemsForFile(repoRoot, uri.fsPath);
-      if (items.length > 0) {
-        if (!filesWithItems.has(uri.fsPath)) {
-          filesWithItems.add(uri.fsPath);
-          startupItems.push(...items);
-        }
+    const { root: repoRoot } = resolveRepoRoot(uri);
+    const items = getItemsForFile(repoRoot, uri.fsPath);
+    if (items.length > 0) {
+      if (!filesWithItems.has(uri.fsPath)) {
+        filesWithItems.add(uri.fsPath);
+        startupItems.push(...items);
       }
     }
+  }
 
   notifyForItems(startupItems, () => provider.reveal(), {
     fileCount: filesWithItems.size,
@@ -187,7 +208,9 @@ export function activate(context: vscode.ExtensionContext) {
         timestamp: Date.now(),
       };
 
-      const { root: repoRoot, isFallback } = resolveRepoRoot(editor.document.uri);
+      const { root: repoRoot, isFallback } = resolveRepoRoot(
+        editor.document.uri,
+      );
 
       const { existingCount } = addItem(repoRoot, item);
       provider.refresh();
