@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { randomUUID } from "crypto";
 import { ScarceItem, SeverityLevel } from "./types/index";
@@ -6,15 +8,51 @@ import { addItem, getItemsForFile } from "./storage/index";
 import { notifyForItems } from "./notifications/index";
 import { CairnsViewProvider, VIEW_ID } from "./sidebar/index";
 
+const PROJECT_ROOT_MARKERS = [
+  ".git",
+  "package.json",
+  "pyproject.toml",
+  "Cargo.toml",
+  "go.mod",
+  ".vscode",
+];
+
+function findMarkerProjectRoot(startDir: string): string | null {
+  const home = os.homedir();
+  let current = startDir;
+
+  while (true) {
+    for (const marker of PROJECT_ROOT_MARKERS) {
+      if (fs.existsSync(path.join(current, marker))) {
+        return current;
+      }
+    }
+
+    if (current === home) {
+      return null;
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return null;
+    }
+
+    current = parent;
+  }
+}
+
 function resolveRepoRoot(uri: vscode.Uri): string {
   const folder = vscode.workspace.getWorkspaceFolder(uri);
   if (folder) {
     return folder.uri.fsPath;
   }
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  return workspaceFolders
-    ? workspaceFolders[0].uri.fsPath
-    : path.dirname(uri.fsPath);
+
+  const markerRoot = findMarkerProjectRoot(path.dirname(uri.fsPath));
+  if (markerRoot) {
+    return markerRoot;
+  }
+
+  return path.dirname(uri.fsPath);
 }
 
 export function activate(context: vscode.ExtensionContext) {
