@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import { randomBytes } from "crypto";
 import { ScarceItem, SeverityLevel } from "../types/index";
 import { getItemsForRepo, removeItem } from "../storage/index";
 
@@ -28,6 +29,12 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
         this.handleDelete(message.repoRoot, message.relPath, message.itemId);
       }
     });
+
+    const workspaceListener = vscode.workspace.onDidChangeWorkspaceFolders(
+      () => this.refresh(),
+    );
+
+    webviewView.onDidDispose(() => workspaceListener.dispose());
 
     this.refresh();
   }
@@ -189,10 +196,13 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
   }
 
   private wrapHtml(bodyContent: string): string {
+    const nonce = randomBytes(16).toString("base64");
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <style>
   body {
     font-family: var(--vscode-font-family);
@@ -293,7 +303,7 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   ${bodyContent}
-  <script>
+  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     document.addEventListener("click", (event) => {
       const button = event.target.closest('[data-action="delete"]');
