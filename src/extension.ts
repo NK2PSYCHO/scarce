@@ -81,7 +81,11 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   const fileOpenListener =
-    vscode.workspace.onDidOpenTextDocument(checkAndNotify);
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor) {
+        checkAndNotify(editor.document);
+      }
+    });
 
   context.subscriptions.push(fileOpenListener);
 
