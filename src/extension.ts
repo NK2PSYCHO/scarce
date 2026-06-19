@@ -109,8 +109,10 @@ export function activate(context: vscode.ExtensionContext) {
       const { root: repoRoot } = resolveRepoRoot(uri);
       const items = getItemsForFile(repoRoot, uri.fsPath);
       if (items.length > 0) {
-        filesWithItems.add(uri.fsPath);
-        startupItems.push(...items);
+        if (!filesWithItems.has(uri.fsPath)) {
+          filesWithItems.add(uri.fsPath);
+          startupItems.push(...items);
+        }
       }
     }
 
