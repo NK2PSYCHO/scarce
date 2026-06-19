@@ -89,16 +89,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(fileOpenListener);
 
-  const startupWorkspaceFolders = vscode.workspace.workspaceFolders;
-  if (startupWorkspaceFolders) {
-    const openFileUris = vscode.window.tabGroups.all
-      .flatMap((group) => group.tabs)
-      .map((tab) =>
-        tab.input instanceof vscode.TabInputText ? tab.input.uri : undefined,
-      )
-      .filter(
-        (uri): uri is vscode.Uri => uri !== undefined && uri.scheme === "file",
-      );
+  const openFileUris = vscode.window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .map((tab) =>
+      tab.input instanceof vscode.TabInputText ? tab.input.uri : undefined,
+    )
+    .filter(
+      (uri): uri is vscode.Uri => uri !== undefined && uri.scheme === "file",
+    );
 
     const filesWithItems = new Set<string>();
     const startupItems: ScarceItem[] = [];
@@ -116,10 +114,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
 
-    notifyForItems(startupItems, () => provider.reveal(), {
-      fileCount: filesWithItems.size,
-    });
-  }
+  notifyForItems(startupItems, () => provider.reveal(), {
+    fileCount: filesWithItems.size,
+  });
 
   const addToScarce = vscode.commands.registerCommand(
     "scarce.addToScarce",
