@@ -91,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    if (sweptOnStartup.delete(document.uri.fsPath)) {
+    if (sweptOnStartup.delete(document.uri.fsPath.toLowerCase())) {
       return;
     }
 
@@ -123,7 +123,7 @@ export function activate(context: vscode.ExtensionContext) {
   const startupItems: ScarceItem[] = [];
 
   for (const uri of openFileUris) {
-    sweptOnStartup.add(uri.fsPath);
+    sweptOnStartup.add(uri.fsPath.toLowerCase());
 
     const { root: repoRoot } = resolveRepoRoot(uri);
     const items = getItemsForFile(repoRoot, uri.fsPath);

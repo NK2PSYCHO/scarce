@@ -72,11 +72,13 @@ function migrate(storage: ScarceStorage): ScarceStorage {
     return storage;
   }
 
-  console.warn(
-    `[Scarce] storage file version "${storage.version}" does not match ` +
-      `current version "${CURRENT_VERSION}" and no migration was found. ` +
-      `Using as-is.`,
-  );
+  if (storage.version !== CURRENT_VERSION) {
+    quarantineCorruptedFile(
+      `unrecognised storage version "${storage.version}", no migration available`,
+    );
+    return emptyStorage();
+  }
+
   return storage;
 }
 
@@ -166,9 +168,13 @@ function getRepoRegistry(storage: ScarceStorage): RepoRegistry {
   return storage.repos;
 }
 
+function normalizeRelPath(repoRoot: string, filepath: string): string {
+  return path.relative(repoRoot, filepath).toLowerCase();
+}
+
 export function addItem(repoRoot: string, item: ScarceItem): AddItemResult {
   const storage = readStorage();
-  const relPath = path.relative(repoRoot, item.filepath);
+  const relPath = normalizeRelPath(repoRoot, item.filepath);
   const repos = getRepoRegistry(storage);
 
   if (!repos[repoRoot]) {
@@ -201,7 +207,7 @@ export function getItemsForFile(
   filepath: string,
 ): ScarceItem[] {
   const storage = readStorage();
-  const relPath = path.relative(repoRoot, filepath);
+  const relPath = normalizeRelPath(repoRoot, filepath);
   const bucket = getRepoRegistry(storage)[repoRoot]?.[relPath];
   if (!bucket) {
     return [];
@@ -239,7 +245,7 @@ export function removeItem(
   itemId: string,
 ): void {
   const storage = readStorage();
-  const relPath = path.relative(repoRoot, filepath);
+  const relPath = normalizeRelPath(repoRoot, filepath);
   const repos = getRepoRegistry(storage);
   const bucket = repos[repoRoot]?.[relPath];
   if (!bucket) {
