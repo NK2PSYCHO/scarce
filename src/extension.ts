@@ -147,16 +147,21 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const selection = editor.selection;
-      if (selection.isEmpty) {
+      const selections = editor.selections.filter((s) => !s.isEmpty);
+      if (selections.length === 0) {
         vscode.window.showWarningMessage("Scarce: No text selected.");
         return;
       }
 
-      const selectedText = editor.document.getText(selection);
+      const sorted = [...selections].sort(
+        (a, b) => a.start.line - b.start.line,
+      );
+      const selectedText = sorted
+        .map((s) => editor.document.getText(s))
+        .join("\n---\n");
       const filePath = editor.document.uri.fsPath;
-      const startLine = selection.start.line + 1;
-      const endLine = selection.end.line + 1;
+      const startLine = sorted[0].start.line + 1;
+      const endLine = sorted[sorted.length - 1].end.line + 1;
 
       const comment = await vscode.window.showInputBox({
         title: "Scarce: Add Context",
