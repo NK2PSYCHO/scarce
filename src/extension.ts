@@ -97,7 +97,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     const { root: repoRoot } = resolveRepoRoot(document.uri);
     const items = getItemsForFile(repoRoot, document.uri.fsPath);
-    notifyForItems(items, () => provider.reveal());
+    notifyForItems(items, () => provider.reveal(), {
+      filePaths: [document.uri.fsPath],
+    });
   };
 
   const fileOpenListener = vscode.window.onDidChangeActiveTextEditor(
@@ -119,7 +121,8 @@ export function activate(context: vscode.ExtensionContext) {
       (uri): uri is vscode.Uri => uri !== undefined && uri.scheme === "file",
     );
 
-  const filesWithItems = new Set<string>();
+  const filesWithItems: string[] = [];
+  const seenFiles = new Set<string>();
   const startupItems: ScarceItem[] = [];
 
   for (const uri of openFileUris) {
@@ -128,15 +131,16 @@ export function activate(context: vscode.ExtensionContext) {
     const { root: repoRoot } = resolveRepoRoot(uri);
     const items = getItemsForFile(repoRoot, uri.fsPath);
     if (items.length > 0) {
-      if (!filesWithItems.has(uri.fsPath)) {
-        filesWithItems.add(uri.fsPath);
+      if (!seenFiles.has(uri.fsPath)) {
+        seenFiles.add(uri.fsPath);
+        filesWithItems.push(uri.fsPath);
         startupItems.push(...items);
       }
     }
   }
 
   notifyForItems(startupItems, () => provider.reveal(), {
-    fileCount: filesWithItems.size,
+    filePaths: filesWithItems,
   });
 
   const addToScarce = vscode.commands.registerCommand(

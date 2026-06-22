@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { ScarceItem } from "../types/index";
 
 export interface NotifyScope {
-  fileCount?: number;
+  filePaths?: string[];
 }
 
 export function notifyForItems(
@@ -19,7 +20,7 @@ export function notifyForItems(
   const normal = items.filter((i) => i.severity === "normal");
 
   const summary = buildSummary(critical.length, high.length, normal.length);
-  const location = buildLocation(scope.fileCount ?? 1);
+  const location = buildLocation(scope.filePaths ?? []);
 
   if (critical.length > 0) {
     void showCriticalModal(summary, location, reveal);
@@ -34,8 +35,22 @@ export function notifyForItems(
   showNormalStatusBar(summary, location);
 }
 
-function buildLocation(fileCount: number): string {
-  return fileCount > 1 ? `across ${fileCount} open files` : "in this file";
+function buildLocation(filePaths: string[]): string {
+  if (filePaths.length === 0) {
+    return "in this file";
+  }
+
+  if (filePaths.length === 1) {
+    return `in ${parentSlashFilename(filePaths[0])}`;
+  }
+
+  return `across ${filePaths.length} open files`;
+}
+
+function parentSlashFilename(filePath: string): string {
+  const filename = path.basename(filePath);
+  const parent = path.basename(path.dirname(filePath));
+  return parent ? `${parent}/${filename}` : filename;
 }
 
 function buildSummary(critical: number, high: number, normal: number): string {

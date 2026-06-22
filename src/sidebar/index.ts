@@ -1,8 +1,34 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
 import * as path from "path";
 import { randomBytes } from "crypto";
 import { ScarceItem, SeverityLevel } from "../types/index";
-import { getItemsForRepo, removeItem } from "../storage/index";
+import { getAllRepos, getItemsForRepo, removeItem } from "../storage/index";
+
+function normalizePath(p: string): string {
+  try {
+    return fs
+      .realpathSync(p)
+      .replace(/[\\/]+$/, "")
+      .toLowerCase();
+  } catch {
+    return path
+      .normalize(p)
+      .replace(/[\\/]+$/, "")
+      .toLowerCase();
+  }
+}
+
+function findStoredRootsUnder(folderPath: string): string[] {
+  const normalizedFolder = normalizePath(folderPath);
+  return getAllRepos().filter((storedRoot) => {
+    return (
+      storedRoot === normalizedFolder ||
+      storedRoot.startsWith(normalizedFolder + path.sep) ||
+      storedRoot.startsWith(normalizedFolder + "/")
+    );
+  });
+}
 
 export const VIEW_ID = "scarce-cairns";
 
@@ -30,8 +56,8 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
       }
     });
 
-    const workspaceListener = vscode.workspace.onDidChangeWorkspaceFolders(
-      () => this.refresh(),
+    const workspaceListener = vscode.workspace.onDidChangeWorkspaceFolders(() =>
+      this.refresh(),
     );
 
     webviewView.onDidDispose(() => workspaceListener.dispose());
@@ -58,11 +84,41 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const sections: RepoSection[] = workspaceFolders.map((folder) => ({
-      repoRoot: folder.uri.fsPath,
-      repoName: folder.name,
-      itemsByFile: getItemsForRepo(folder.uri.fsPath),
-    }));
+    const sections: RepoSection[] = [];
+
+    for (const folder of workspaceFolders) {
+      const storedRoots = findStoredRootsUnder(folder.uri.fsPath);
+
+      if (storedRoots.length === 0) {
+        const itemsByFile = getItemsForRepo(folder.uri.fsPath);
+        if (Object.keys(itemsByFile).length > 0) {
+          sections.push({
+            repoRoot: folder.uri.fsPath,
+            repoName: folder.name,
+            itemsByFile,
+          });
+        }
+        continue;
+      }
+
+      for (const storedRoot of storedRoots) {
+        const itemsByFile = getItemsForRepo(storedRoot);
+        if (Object.keys(itemsByFile).length === 0) {
+          continue;
+        }
+
+        const label =
+          storedRoots.length > 1
+            ? `${folder.name}/${path.relative(normalizePath(folder.uri.fsPath), storedRoot)}`
+            : folder.name;
+
+        sections.push({
+          repoRoot: storedRoot,
+          repoName: label,
+          itemsByFile,
+        });
+      }
+    }
 
     this.view.webview.html = this.getHtml(sections);
   }
