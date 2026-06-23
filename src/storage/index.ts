@@ -11,8 +11,15 @@ import {
   emptyStorage,
 } from "../types/index";
 
-const SCARCE_DIR = path.join(os.homedir(), ".scarce");
-const SCARCE_FILE = path.join(SCARCE_DIR, "scarce.json");
+const PERSONAL_DIR = path.join(os.homedir(), ".scarce");
+const PERSONAL_FILE = path.join(PERSONAL_DIR, "scarce.json");
+
+function sharedDir(repoRoot: string): string {
+  return path.join(repoRoot, ".scarce");
+}
+function sharedFile(repoRoot: string): string {
+  return path.join(sharedDir(repoRoot), "scarce.json");
+}
 
 const CURRENT_VERSION = "1.0.0";
 
@@ -75,6 +82,7 @@ function migrate(storage: ScarceStorage): ScarceStorage {
   if (storage.version !== CURRENT_VERSION) {
     quarantineCorruptedFile(
       `unrecognised storage version "${storage.version}", no migration available`,
+      PERSONAL_FILE,
     );
     return emptyStorage();
   }
@@ -82,16 +90,17 @@ function migrate(storage: ScarceStorage): ScarceStorage {
   return storage;
 }
 
-function quarantineCorruptedFile(reason: string): void {
+function quarantineCorruptedFile(reason: string, filePath: string): void {
   try {
-    if (!fs.existsSync(SCARCE_FILE)) {
+    if (!fs.existsSync(filePath)) {
       return;
     }
+    const dir = path.dirname(filePath);
     const quarantinePath = path.join(
-      SCARCE_DIR,
+      dir,
       `scarce.json.corrupted-${Date.now()}`,
     );
-    fs.copyFileSync(SCARCE_FILE, quarantinePath);
+    fs.copyFileSync(filePath, quarantinePath);
     console.error(
       `[Scarce] Storage file was corrupted or invalid (${reason}). ` +
         `The original file was preserved at: ${quarantinePath}. ` +
@@ -102,14 +111,14 @@ function quarantineCorruptedFile(reason: string): void {
   }
 }
 
-export function readStorage(): ScarceStorage {
-  if (!fs.existsSync(SCARCE_FILE)) {
+function readStorageFile(filePath: string): ScarceStorage {
+  if (!fs.existsSync(filePath)) {
     return emptyStorage();
   }
 
   let raw: string;
   try {
-    raw = fs.readFileSync(SCARCE_FILE, "utf-8");
+    raw = fs.readFileSync(filePath, "utf-8");
   } catch (err) {
     console.error("[Scarce] Failed to read storage file:", err);
     return emptyStorage();
@@ -119,22 +128,26 @@ export function readStorage(): ScarceStorage {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    quarantineCorruptedFile("invalid JSON syntax");
+    quarantineCorruptedFile("invalid JSON syntax", filePath);
     return emptyStorage();
   }
 
   if (!isValidScarceStorage(parsed)) {
-    quarantineCorruptedFile("parsed JSON did not match expected shape");
+    quarantineCorruptedFile(
+      "parsed JSON did not match expected shape",
+      filePath,
+    );
     return emptyStorage();
   }
 
   return migrate(parsed);
 }
 
-export function writeStorage(storage: ScarceStorage): void {
+function writeStorageFile(filePath: string, storage: ScarceStorage): void {
   try {
-    if (!fs.existsSync(SCARCE_DIR)) {
-      fs.mkdirSync(SCARCE_DIR, { recursive: true });
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
 
     storage.version = CURRENT_VERSION;
@@ -142,15 +155,50 @@ export function writeStorage(storage: ScarceStorage): void {
 
     const payload = JSON.stringify(storage, null, 2);
     const tempFile = path.join(
-      SCARCE_DIR,
+      dir,
       `.scarce.json.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`,
     );
 
     fs.writeFileSync(tempFile, payload, "utf-8");
-    fs.renameSync(tempFile, SCARCE_FILE);
+    fs.renameSync(tempFile, filePath);
   } catch (err) {
     console.error("[Scarce] Failed to write storage:", err);
   }
+}
+
+export function readStorage(): ScarceStorage {
+  return readStorageFile(PERSONAL_FILE);
+}
+
+export function writeStorage(storage: ScarceStorage): void {
+  writeStorageFile(PERSONAL_FILE, storage);
+}
+
+export function readSharedStorage(repoRoot: string): ScarceStorage {
+  return readStorageFile(sharedFile(repoRoot));
+}
+
+export function writeSharedStorage(
+  repoRoot: string,
+  storage: ScarceStorage,
+): void {
+  writeStorageFile(sharedFile(repoRoot), storage);
+}
+
+export function isFirstSharedCairnInRepo(repoRoot: string): boolean {
+  return !fs.existsSync(sharedFile(repoRoot));
+}
+
+export function isSharedDirGitignored(repoRoot: string): boolean {
+  const gitignorePath = path.join(repoRoot, ".gitignore");
+  if (!fs.existsSync(gitignorePath)) {
+    return false;
+  }
+  const content = fs.readFileSync(gitignorePath, "utf-8");
+  return content.split("\n").some((line) => {
+    const trimmed = line.trim();
+    return trimmed === ".scarce" || trimmed === ".scarce/";
+  });
 }
 
 export interface AddItemResult {
@@ -180,13 +228,11 @@ export function addItem(repoRoot: string, item: ScarceItem): AddItemResult {
   if (!repos[repoRoot]) {
     repos[repoRoot] = {};
   }
-
   if (!repos[repoRoot][relPath]) {
     repos[repoRoot][relPath] = emptyBucket();
   }
 
   const bucket = repos[repoRoot][relPath];
-
   const existingCount = [
     ...bucket.critical,
     ...bucket.high,
@@ -196,7 +242,6 @@ export function addItem(repoRoot: string, item: ScarceItem): AddItemResult {
   ).length;
 
   bucket[item.severity].push(item);
-
   writeStorage(storage);
 
   return { existingCount };
@@ -263,11 +308,104 @@ export function removeItem(
 
   if (isEmpty) {
     delete repos[repoRoot][relPath];
-
     if (Object.keys(repos[repoRoot]).length === 0) {
       delete repos[repoRoot];
     }
   }
 
   writeStorage(storage);
+}
+
+export function addSharedItem(
+  repoRoot: string,
+  item: ScarceItem,
+): AddItemResult {
+  const storage = readSharedStorage(repoRoot);
+  const relPath = normalizeRelPath(repoRoot, item.filepath);
+  const repos = getRepoRegistry(storage);
+
+  if (!repos[repoRoot]) {
+    repos[repoRoot] = {};
+  }
+  if (!repos[repoRoot][relPath]) {
+    repos[repoRoot][relPath] = emptyBucket();
+  }
+
+  const bucket = repos[repoRoot][relPath];
+  const existingCount = [
+    ...bucket.critical,
+    ...bucket.high,
+    ...bucket.normal,
+  ].filter(
+    (i) => i.startLine === item.startLine && i.endLine === item.endLine,
+  ).length;
+
+  bucket[item.severity].push(item);
+  writeSharedStorage(repoRoot, storage);
+
+  return { existingCount };
+}
+
+export function getSharedItemsForFile(
+  repoRoot: string,
+  filepath: string,
+): ScarceItem[] {
+  const storage = readSharedStorage(repoRoot);
+  const relPath = normalizeRelPath(repoRoot, filepath);
+  const bucket = getRepoRegistry(storage)[repoRoot]?.[relPath];
+  if (!bucket) {
+    return [];
+  }
+  return [...bucket.critical, ...bucket.high, ...bucket.normal];
+}
+
+export function getSharedItemsForRepo(
+  repoRoot: string,
+): Record<string, ScarceItem[]> {
+  const storage = readSharedStorage(repoRoot);
+  const fileRegistry = getRepoRegistry(storage)[repoRoot];
+  if (!fileRegistry) {
+    return {};
+  }
+
+  const result: Record<string, ScarceItem[]> = {};
+  for (const [relPath, bucket] of Object.entries(fileRegistry)) {
+    const items = [...bucket.critical, ...bucket.high, ...bucket.normal];
+    if (items.length > 0) {
+      result[relPath] = items;
+    }
+  }
+  return result;
+}
+
+export function removeSharedItem(
+  repoRoot: string,
+  filepath: string,
+  itemId: string,
+): void {
+  const storage = readSharedStorage(repoRoot);
+  const relPath = normalizeRelPath(repoRoot, filepath);
+  const repos = getRepoRegistry(storage);
+  const bucket = repos[repoRoot]?.[relPath];
+  if (!bucket) {
+    return;
+  }
+
+  (["critical", "high", "normal"] as SeverityLevel[]).forEach((severity) => {
+    bucket[severity] = bucket[severity].filter((i) => i.id !== itemId);
+  });
+
+  const isEmpty =
+    bucket.critical.length === 0 &&
+    bucket.high.length === 0 &&
+    bucket.normal.length === 0;
+
+  if (isEmpty) {
+    delete repos[repoRoot][relPath];
+    if (Object.keys(repos[repoRoot]).length === 0) {
+      delete repos[repoRoot];
+    }
+  }
+
+  writeSharedStorage(repoRoot, storage);
 }

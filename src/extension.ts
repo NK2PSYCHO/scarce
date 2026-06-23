@@ -4,8 +4,15 @@ import * as os from "os";
 import * as path from "path";
 import { randomUUID } from "crypto";
 import { ScarceItem, SeverityLevel } from "./types/index";
-import { addItem, getItemsForFile } from "./storage/index";
-import { notifyForItems } from "./notifications/index";
+import {
+  addItem,
+  addSharedItem,
+  getItemsForFile,
+  getSharedItemsForFile,
+  isFirstSharedCairnInRepo,
+  isSharedDirGitignored,
+} from "./storage/index";
+import { notifyForItems, CairnCounts } from "./notifications/index";
 import { CairnsViewProvider, VIEW_ID } from "./sidebar/index";
 
 const PROJECT_ROOT_MARKERS = [
@@ -96,8 +103,11 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const { root: repoRoot } = resolveRepoRoot(document.uri);
-    const items = getItemsForFile(repoRoot, document.uri.fsPath);
-    notifyForItems(items, () => provider.reveal(), {
+    const counts: CairnCounts = {
+      personal: getItemsForFile(repoRoot, document.uri.fsPath),
+      shared: getSharedItemsForFile(repoRoot, document.uri.fsPath),
+    };
+    notifyForItems(counts, () => provider.reveal(), {
       filePaths: [document.uri.fsPath],
     });
   };
@@ -123,23 +133,24 @@ export function activate(context: vscode.ExtensionContext) {
 
   const filesWithItems: string[] = [];
   const seenFiles = new Set<string>();
-  const startupItems: ScarceItem[] = [];
+  const startupCounts: CairnCounts = { personal: [], shared: [] };
 
   for (const uri of openFileUris) {
     sweptOnStartup.add(uri.fsPath.toLowerCase());
-
     const { root: repoRoot } = resolveRepoRoot(uri);
-    const items = getItemsForFile(repoRoot, uri.fsPath);
-    if (items.length > 0) {
+    const personal = getItemsForFile(repoRoot, uri.fsPath);
+    const shared = getSharedItemsForFile(repoRoot, uri.fsPath);
+    if (personal.length > 0 || shared.length > 0) {
       if (!seenFiles.has(uri.fsPath)) {
         seenFiles.add(uri.fsPath);
         filesWithItems.push(uri.fsPath);
-        startupItems.push(...items);
+        startupCounts.personal.push(...personal);
+        startupCounts.shared.push(...shared);
       }
     }
   }
 
-  notifyForItems(startupItems, () => provider.reveal(), {
+  notifyForItems(startupCounts, () => provider.reveal(), {
     filePaths: filesWithItems,
   });
 
@@ -206,6 +217,31 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      const scopeOptions = [
+        {
+          label: "$(home) Personal",
+          description: "Saved to ~/.scarce — only visible to you",
+          value: "personal",
+        },
+        {
+          label: "$(organization) Shared",
+          description: "Saved to <repo>/.scarce — visible to your team",
+          value: "shared",
+        },
+      ];
+
+      const scopePicked = await vscode.window.showQuickPick(scopeOptions, {
+        title: "Scarce: Personal or Shared?",
+        placeHolder: "Who should see this cairn?",
+        ignoreFocusOut: true,
+      });
+
+      if (!scopePicked) {
+        return;
+      }
+
+      const scope = scopePicked.value as "personal" | "shared";
+
       const item: ScarceItem = {
         id: randomUUID(),
         codeSnapshot: selectedText,
@@ -221,11 +257,34 @@ export function activate(context: vscode.ExtensionContext) {
         editor.document.uri,
       );
 
-      const { existingCount } = addItem(repoRoot, item);
+      const { existingCount } =
+        scope === "shared"
+          ? addSharedItem(repoRoot, item)
+          : addItem(repoRoot, item);
+
       provider.refresh();
 
+      if (scope === "shared" && isFirstSharedCairnInRepo(repoRoot)) {
+        if (!isSharedDirGitignored(repoRoot)) {
+          const choice = await vscode.window.showWarningMessage(
+            "Scarce: .scarce/ is not in your .gitignore. Add it to avoid committing shared cairns.",
+            "Add to .gitignore",
+            "Ignore",
+          );
+          if (choice === "Add to .gitignore") {
+            const gitignorePath = path.join(repoRoot, ".gitignore");
+            const entry = "\n# Scarce shared cairns\n.scarce/\n";
+            fs.appendFileSync(gitignorePath, entry, "utf-8");
+            vscode.window.showInformationMessage(
+              "Scarce: Added .scarce/ to .gitignore.",
+            );
+          }
+        }
+      }
+
       const commentPart = comment ? `: "${comment}"` : "";
-      const savedMessage = `Scarce saved [${item.severity.toUpperCase()}]${commentPart}`;
+      const scopeTag = scope === "shared" ? " [shared]" : "";
+      const savedMessage = `Scarce saved [${item.severity.toUpperCase()}]${scopeTag}${commentPart}`;
 
       if (isFallback) {
         vscode.window.showWarningMessage(

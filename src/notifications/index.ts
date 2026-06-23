@@ -6,11 +6,17 @@ export interface NotifyScope {
   filePaths?: string[];
 }
 
+export interface CairnCounts {
+  personal: ScarceItem[];
+  shared: ScarceItem[];
+}
+
 export function notifyForItems(
-  items: ScarceItem[],
+  counts: CairnCounts,
   reveal: () => void,
   scope: NotifyScope = {},
 ): void {
+  const items = [...counts.personal, ...counts.shared];
   if (items.length === 0) {
     return;
   }
@@ -20,30 +26,40 @@ export function notifyForItems(
   const normal = items.filter((i) => i.severity === "normal");
 
   const summary = buildSummary(critical.length, high.length, normal.length);
+  const breakdown = buildBreakdown(counts);
   const location = buildLocation(scope.filePaths ?? []);
 
   if (critical.length > 0) {
-    void showCriticalModal(summary, location, reveal);
+    void showCriticalModal(summary, breakdown, location, reveal);
     return;
   }
 
   if (high.length > 0) {
-    void showHighToast(summary, location, reveal);
+    void showHighToast(summary, breakdown, location, reveal);
     return;
   }
 
   showNormalStatusBar(summary, location);
 }
 
+function buildBreakdown(counts: CairnCounts): string {
+  const parts: string[] = [];
+  if (counts.personal.length > 0) {
+    parts.push(`${counts.personal.length} personal`);
+  }
+  if (counts.shared.length > 0) {
+    parts.push(`${counts.shared.length} shared`);
+  }
+  return parts.join(", ");
+}
+
 function buildLocation(filePaths: string[]): string {
   if (filePaths.length === 0) {
     return "in this file";
   }
-
   if (filePaths.length === 1) {
     return `in ${parentSlashFilename(filePaths[0])}`;
   }
-
   return `across ${filePaths.length} open files`;
 }
 
@@ -69,15 +85,15 @@ function buildSummary(critical: number, high: number, normal: number): string {
 
 async function showCriticalModal(
   summary: string,
+  breakdown: string,
   location: string,
   reveal: () => void,
 ): Promise<void> {
   const choice = await vscode.window.showWarningMessage(
-    `Scarce: ${summary} cairns present ${location}, review before continuing.`,
+    `Scarce: ${summary} cairns ${location} (${breakdown}), review before continuing.`,
     { modal: true },
     "Open Cairns",
   );
-
   if (choice === "Open Cairns") {
     reveal();
   }
@@ -85,14 +101,14 @@ async function showCriticalModal(
 
 async function showHighToast(
   summary: string,
+  breakdown: string,
   location: string,
   reveal: () => void,
 ): Promise<void> {
   const choice = await vscode.window.showWarningMessage(
-    `Scarce: ${summary} cairns present ${location}.`,
+    `Scarce: ${summary} cairns ${location} (${breakdown}).`,
     "Open Cairns",
   );
-
   if (choice === "Open Cairns") {
     reveal();
   }
