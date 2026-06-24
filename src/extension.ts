@@ -11,7 +11,10 @@ import {
   getSharedItemsForFile,
   isFirstSharedCairnInRepo,
   isSharedDirGitignored,
+  updateItemLines,
+  updateSharedItemLines,
 } from "./storage/index";
+import { checkStaleness, StalenessMap } from "./staleness/index";
 import { notifyForItems, CairnCounts } from "./notifications/index";
 import { CairnsViewProvider, VIEW_ID } from "./sidebar/index";
 
@@ -84,6 +87,41 @@ function resolveRepoRoot(uri: vscode.Uri): {
   return { root: normalizePath(path.dirname(uri.fsPath)), isFallback: true };
 }
 
+function runStalenessCheck(
+  repoRoot: string,
+  personal: ScarceItem[],
+  shared: ScarceItem[],
+): StalenessMap {
+  const personalResult = checkStaleness(
+    personal,
+    (itemId, newStart, newEnd) => {
+      const item = personal.find((i) => i.id === itemId);
+      if (item) {
+        updateItemLines(repoRoot, item.filepath, itemId, newStart, newEnd);
+      }
+    },
+  );
+
+  const sharedResult = checkStaleness(shared, (itemId, newStart, newEnd) => {
+    const item = shared.find((i) => i.id === itemId);
+    if (item) {
+      updateSharedItemLines(repoRoot, item.filepath, itemId, newStart, newEnd);
+    }
+  });
+
+  const allShifted = [...personalResult.shifted, ...sharedResult.shifted];
+  if (allShifted.length > 0) {
+    const fileNames = [
+      ...new Set(allShifted.map((i) => path.basename(i.filepath))),
+    ].join(", ");
+    void vscode.window.showInformationMessage(
+      `Scarce: updated ${allShifted.length} cairn position${allShifted.length > 1 ? "s" : ""} in ${fileNames}.`,
+    );
+  }
+
+  return { ...personalResult.map, ...sharedResult.map };
+}
+
 export function activate(context: vscode.ExtensionContext) {
   const provider = new CairnsViewProvider(context.extensionUri);
 
@@ -103,10 +141,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const { root: repoRoot } = resolveRepoRoot(document.uri);
-    const counts: CairnCounts = {
-      personal: getItemsForFile(repoRoot, document.uri.fsPath),
-      shared: getSharedItemsForFile(repoRoot, document.uri.fsPath),
-    };
+    const personal = getItemsForFile(repoRoot, document.uri.fsPath);
+    const shared = getSharedItemsForFile(repoRoot, document.uri.fsPath);
+
+    if (personal.length > 0 || shared.length > 0) {
+      const stalenessMap = runStalenessCheck(repoRoot, personal, shared);
+      provider.updateStaleness(stalenessMap);
+    }
+
+    const counts: CairnCounts = { personal, shared };
     notifyForItems(counts, () => provider.reveal(), {
       filePaths: [document.uri.fsPath],
     });
@@ -134,13 +177,18 @@ export function activate(context: vscode.ExtensionContext) {
   const filesWithItems: string[] = [];
   const seenFiles = new Set<string>();
   const startupCounts: CairnCounts = { personal: [], shared: [] };
+  const startupStaleness: StalenessMap = {};
 
   for (const uri of openFileUris) {
     sweptOnStartup.add(uri.fsPath.toLowerCase());
     const { root: repoRoot } = resolveRepoRoot(uri);
     const personal = getItemsForFile(repoRoot, uri.fsPath);
     const shared = getSharedItemsForFile(repoRoot, uri.fsPath);
+
     if (personal.length > 0 || shared.length > 0) {
+      const stalenessMap = runStalenessCheck(repoRoot, personal, shared);
+      Object.assign(startupStaleness, stalenessMap);
+
       if (!seenFiles.has(uri.fsPath)) {
         seenFiles.add(uri.fsPath);
         filesWithItems.push(uri.fsPath);
@@ -150,6 +198,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }
 
+  provider.updateStaleness(startupStaleness);
   notifyForItems(startupCounts, () => provider.reveal(), {
     filePaths: filesWithItems,
   });
