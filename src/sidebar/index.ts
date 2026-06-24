@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { randomBytes } from "crypto";
-import { ScarceItem, SeverityLevel } from "../types/index";
+import { ScarceItem } from "../types/index";
 import {
   getAllRepos,
   getItemsForRepo,
