@@ -409,3 +409,53 @@ export function removeSharedItem(
 
   writeSharedStorage(repoRoot, storage);
 }
+
+export function updateItemLines(
+  repoRoot: string,
+  filepath: string,
+  itemId: string,
+  newStart: number,
+  newEnd: number,
+): void {
+  const storage = readStorage();
+  const relPath = normalizeRelPath(repoRoot, filepath);
+  const bucket = getRepoRegistry(storage)[repoRoot]?.[relPath];
+  if (!bucket) {
+    return;
+  }
+
+  for (const severity of ["critical", "high", "normal"] as SeverityLevel[]) {
+    const item = bucket[severity].find((i) => i.id === itemId);
+    if (item) {
+      item.startLine = newStart;
+      item.endLine = newEnd;
+      writeStorage(storage);
+      return;
+    }
+  }
+}
+
+export function updateSharedItemLines(
+  repoRoot: string,
+  filepath: string,
+  itemId: string,
+  newStart: number,
+  newEnd: number,
+): void {
+  const storage = readSharedStorage(repoRoot);
+  const relPath = normalizeRelPath(repoRoot, filepath);
+  const bucket = getRepoRegistry(storage)[repoRoot]?.[relPath];
+  if (!bucket) {
+    return;
+  }
+
+  for (const severity of ["critical", "high", "normal"] as SeverityLevel[]) {
+    const item = bucket[severity].find((i) => i.id === itemId);
+    if (item) {
+      item.startLine = newStart;
+      item.endLine = newEnd;
+      writeSharedStorage(repoRoot, storage);
+      return;
+    }
+  }
+}
