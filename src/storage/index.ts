@@ -284,6 +284,38 @@ export function getAllRepos(): string[] {
   return Object.keys(getRepoRegistry(storage));
 }
 
+const SHARED_SCAN_SKIP_DIRS = new Set(["node_modules", ".git", ".scarce"]);
+
+export function getAllSharedRepos(searchRoot: string): string[] {
+  const found: string[] = [];
+
+  function walk(dir: string): void {
+    if (fs.existsSync(sharedFile(dir))) {
+      found.push(dir);
+    }
+
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      if (SHARED_SCAN_SKIP_DIRS.has(entry.name)) {
+        continue;
+      }
+      walk(path.join(dir, entry.name));
+    }
+  }
+
+  walk(searchRoot);
+  return found;
+}
+
 export function removeItem(
   repoRoot: string,
   filepath: string,

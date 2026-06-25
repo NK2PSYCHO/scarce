@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 import { ScarceItem } from "../types/index";
 import {
   getAllRepos,
+  getAllSharedRepos,
   getItemsForRepo,
   getSharedItemsForRepo,
   removeItem,
@@ -31,7 +32,11 @@ function normalizePath(p: string): string {
 
 function findStoredRootsUnder(folderPath: string): string[] {
   const normalizedFolder = normalizePath(folderPath);
-  return getAllRepos().filter((storedRoot) => {
+  const personalRoots = getAllRepos();
+  const sharedRoots = getAllSharedRepos(folderPath).map(normalizePath);
+  const candidates = [...new Set([...personalRoots, ...sharedRoots])];
+
+  return candidates.filter((storedRoot) => {
     return (
       storedRoot === normalizedFolder ||
       storedRoot.startsWith(normalizedFolder + path.sep) ||
@@ -238,7 +243,9 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
     for (const folder of workspaceFolders) {
       const storedRoots = findStoredRootsUnder(folder.uri.fsPath);
       const roots =
-        storedRoots.length === 0 ? [folder.uri.fsPath] : storedRoots;
+        storedRoots.length === 0
+          ? [normalizePath(folder.uri.fsPath)]
+          : storedRoots;
 
       for (const root of roots) {
         const label =
