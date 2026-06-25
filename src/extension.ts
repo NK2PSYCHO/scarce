@@ -134,6 +134,15 @@ export function activate(context: vscode.ExtensionContext) {
   const sweptOnStartup = new Set<string>();
   const notifiedFiles = new Set<string>();
 
+  for (const uri of vscode.window.tabGroups.all
+    .flatMap((g) => g.tabs)
+    .map((t) =>
+      t.input instanceof vscode.TabInputText ? t.input.uri : undefined,
+    )
+    .filter((u): u is vscode.Uri => u !== undefined && u.scheme === "file")) {
+    sweptOnStartup.add(uri.fsPath.toLowerCase());
+  }
+
   const checkAndNotify = (document: vscode.TextDocument) => {
     if (document.uri.scheme !== "file") {
       return;
@@ -210,6 +219,10 @@ export function activate(context: vscode.ExtensionContext) {
         startupCounts.shared.push(...shared);
       }
     }
+  }
+
+  for (const f of sweptOnStartup) {
+    notifiedFiles.add(f);
   }
 
   provider.updateStaleness(startupStaleness);

@@ -55,7 +55,7 @@ interface SidebarData {
   sortMode: SortMode;
   activeTab: "personal" | "shared";
   searchQuery: string;
-  isRepo: boolean;
+  hasWorkspace: boolean;
 }
 
 export class CairnsViewProvider implements vscode.WebviewViewProvider {
@@ -225,25 +225,20 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
   private collectSections(): {
     personal: RepoSection[];
     shared: RepoSection[];
-    isRepo: boolean;
+    hasWorkspace: boolean;
   } {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
-      return { personal: [], shared: [], isRepo: false };
+      return { personal: [], shared: [], hasWorkspace: false };
     }
 
     const personalSections: RepoSection[] = [];
     const sharedSections: RepoSection[] = [];
-    let isRepo = false;
 
     for (const folder of workspaceFolders) {
       const storedRoots = findStoredRootsUnder(folder.uri.fsPath);
       const roots =
         storedRoots.length === 0 ? [folder.uri.fsPath] : storedRoots;
-
-      if (storedRoots.length > 0) {
-        isRepo = true;
-      }
 
       for (const root of roots) {
         const label =
@@ -271,14 +266,18 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    return { personal: personalSections, shared: sharedSections, isRepo };
+    return {
+      personal: personalSections,
+      shared: sharedSections,
+      hasWorkspace: true,
+    };
   }
 
   private pushData(): void {
     if (!this.view) {
       return;
     }
-    const { personal, shared, isRepo } = this.collectSections();
+    const { personal, shared, hasWorkspace } = this.collectSections();
     const data: SidebarData = {
       personal,
       shared,
@@ -286,7 +285,7 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
       sortMode: this.sortMode,
       activeTab: this.activeTab,
       searchQuery: this.searchQuery,
-      isRepo,
+      hasWorkspace,
     };
     void this.view.webview.postMessage({ type: "data", ...data });
   }
@@ -578,7 +577,7 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
       const sharedEl = document.getElementById('shared');
       const searchEl = document.getElementById('search-results');
 
-      tabsEl.style.display = data.isRepo ? 'flex' : 'none';
+      tabsEl.style.display = data.hasWorkspace ? 'flex' : 'none';
 
       if (data.searchQuery.trim().length > 0) {
         tabsEl.style.display = 'none';
