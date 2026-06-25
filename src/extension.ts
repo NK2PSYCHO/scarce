@@ -8,7 +8,9 @@ import {
   addItem,
   addSharedItem,
   getItemsForFile,
+  getItemsForRepo,
   getSharedItemsForFile,
+  getSharedItemsForRepo,
   isFirstSharedCairnInRepo,
   isSharedDirGitignored,
   updateItemLines,
@@ -130,6 +132,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const sweptOnStartup = new Set<string>();
+  const notifiedFiles = new Set<string>();
 
   const checkAndNotify = (document: vscode.TextDocument) => {
     if (document.uri.scheme !== "file") {
@@ -141,15 +144,26 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const { root: repoRoot } = resolveRepoRoot(document.uri);
-    const personal = getItemsForFile(repoRoot, document.uri.fsPath);
-    const shared = getSharedItemsForFile(repoRoot, document.uri.fsPath);
+    const personalForFile = getItemsForFile(repoRoot, document.uri.fsPath);
+    const sharedForFile = getSharedItemsForFile(repoRoot, document.uri.fsPath);
 
-    if (personal.length > 0 || shared.length > 0) {
-      const stalenessMap = runStalenessCheck(repoRoot, personal, shared);
+    const allPersonal = Object.values(getItemsForRepo(repoRoot)).flat();
+    const allShared = Object.values(getSharedItemsForRepo(repoRoot)).flat();
+
+    if (allPersonal.length > 0 || allShared.length > 0) {
+      const stalenessMap = runStalenessCheck(repoRoot, allPersonal, allShared);
       provider.updateStaleness(stalenessMap);
     }
 
-    const counts: CairnCounts = { personal, shared };
+    if (notifiedFiles.has(document.uri.fsPath.toLowerCase())) {
+      return;
+    }
+    notifiedFiles.add(document.uri.fsPath.toLowerCase());
+
+    const counts: CairnCounts = {
+      personal: personalForFile,
+      shared: sharedForFile,
+    };
     notifyForItems(counts, () => provider.reveal(), {
       filePaths: [document.uri.fsPath],
     });

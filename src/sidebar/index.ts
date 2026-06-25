@@ -120,7 +120,13 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
   }
 
   public updateStaleness(map: StalenessMap): void {
-    Object.assign(this.stalenessMap, map);
+    for (const [id, state] of Object.entries(map)) {
+      if (state === "fresh") {
+        delete this.stalenessMap[id];
+      } else {
+        this.stalenessMap[id] = state;
+      }
+    }
     this.pushData();
   }
 
@@ -584,8 +590,8 @@ export class CairnsViewProvider implements vscode.WebviewViewProvider {
       }
 
       searchEl.style.display = 'none';
-      personalEl.style.display = 'block';
-      sharedEl.style.display = 'block';
+      personalEl.style.display = '';
+      sharedEl.style.display = '';
 
       document.querySelectorAll('.tab').forEach((t) => {
         t.classList.toggle('active', t.dataset.tab === data.activeTab);
