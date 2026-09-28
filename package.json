@@ -16,8 +16,19 @@
       {
         "command": "scarce.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "scarce.addAsCairn",
+        "title": "Add as Cairn"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "scarce.addAsCairn"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
