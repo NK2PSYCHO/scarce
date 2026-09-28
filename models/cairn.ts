@@ -13,7 +13,7 @@
 * is opened, warning that the file contains a critical Cairn and displaying
 * the counts of critical, high, and normal Cairns.
   */
-export type CairnSeverity = "normal" | "high" | "critical";
+export type CairnSeverity = 'normal' | 'high' | 'critical';
 
 /**
 
