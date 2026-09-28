@@ -1,5 +1,6 @@
 {
   "name": "scarce",
+  "publisher": "nk2psycho",
   "displayName": "scarce",
   "description": "WIP",
   "version": "0.0.1",
@@ -13,10 +14,6 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "scarce.helloWorld",
-        "title": "Hello World"
-      },
       {
         "command": "scarce.addAsCairn",
         "title": "Add as Cairn"
