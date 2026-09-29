@@ -1,2 +1,4 @@
+packages:
+  - scarce-ui
 allowBuilds:
   esbuild: true
