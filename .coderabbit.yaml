@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+
+reviews:
+  profile: assertive
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - '!**/dist/**'
+    - '!**/out/**'
+    - '!**/build/**'
+    - '!**/*.lock'
+    - '!**/pnpm-lock.yaml'
+    - '!**/package-lock.json'
+    - '!**/yarn.lock'
+
+chat:
+  auto_reply: true
