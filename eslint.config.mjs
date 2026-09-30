@@ -1,6 +1,7 @@
 // @ts-check
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
   {
@@ -55,6 +56,30 @@ export default tseslint.config(
       'no-throw-literal': 'off',
       '@typescript-eslint/only-throw-error': 'warn',
       semi: 'off',
+    },
+  },
+  {
+    files: ['scarce-ui/src/**/*.{ts,tsx}'],
+    extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    plugins: { 'react-hooks': reactHooks },
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.app.json'],
+        tsconfigRootDir: `${import.meta.dirname}/scarce-ui`,
+      },
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/consistent-type-imports': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      curly: 'warn',
+      eqeqeq: 'warn',
     },
   },
   {
