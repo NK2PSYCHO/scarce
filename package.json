@@ -14,10 +14,22 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "scarce.addAsCairn",
+        "title": "Add as Cairn"
+      }
+    ],
     "menus": {
       "editor/context": [
         {
           "command": "scarce.addAsCairn"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "scarce.addAsCairn",
+          "when": "false"
         }
       ]
     }
