@@ -14,4 +14,11 @@ vsc-extension-quickstart.md
 **/.vscode-test.*
 models/**
 pnpm-lock.yaml
+scarce-ui/**
+!scarce-ui/dist/main.js
+!scarce-ui/dist/main.css
+.github/**
+.husky/**
+.coderabbit.yaml
+.prettierignore
 pnpm-workspace.yaml
