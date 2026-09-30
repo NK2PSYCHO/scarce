@@ -43,10 +43,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: node esbuild.js --production
+      - run: pnpm run build:ui
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scarce-ui-dist
+          path: scarce-ui/dist/
           retention-days: 7
 
   test:
