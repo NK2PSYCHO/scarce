@@ -4,6 +4,7 @@
   "displayName": "scarce",
   "description": "WIP",
   "version": "0.0.1",
+  "packageManager": "pnpm@12.6.0",
   "engines": {
     "vscode": "^1.134.0"
   },
