@@ -1,8 +1,10 @@
 {
   "name": "scarce",
+  "publisher": "nk2psycho",
   "displayName": "scarce",
   "description": "WIP",
   "version": "0.0.1",
+  "packageManager": "pnpm@12.6.0",
   "engines": {
     "vscode": "^1.134.0"
   },
@@ -14,39 +16,75 @@
   "contributes": {
     "commands": [
       {
-        "command": "scarce.helloWorld",
-        "title": "Hello World"
+        "command": "scarce.addAsCairn",
+        "title": "Add as Cairn"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "scarce.addAsCairn"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "scarce.addAsCairn",
+          "when": "false"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
-    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "compile": "pnpm run build:ui && pnpm run check-types && pnpm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "package": "pnpm run build:ui && pnpm run check-types && pnpm run lint && node esbuild.js --production",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
-    "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "check-types": "tsc --noEmit && pnpm --filter scarce-ui check-types",
+    "lint": "eslint src models scarce-ui/src",
+    "test": "vscode-test",
+    "lint:fix": "eslint src models scarce-ui/src --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "build:ui": "pnpm --filter scarce-ui build",
+    "watch:ui": "pnpm --filter scarce-ui watch"
   },
   "devDependencies": {
-    "@types/vscode": "^1.134.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
-    "typescript-eslint": "^8.61.1",
-    "eslint": "^10.5.0",
-    "esbuild": "^0.28.1",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^6.0.3",
+    "@types/vscode": "^1.134.0",
     "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
+    "@vscode/test-electron": "^3.0.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.6.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
   },
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"
+  },
+  "lint-staged": {
+    "{src,models,scarce-ui/src}/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "scarce-ui/*.ts": [
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css,html,mjs,js}": [
+      "prettier --write"
+    ]
   }
 }
