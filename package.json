@@ -63,11 +63,14 @@
     "serialize-javascript": "^7.0.6"
   },
   "lint-staged": {
-    "*.ts": [
+    "{src,models,scarce-ui/src}/**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md,yml,yaml}": [
+    "scarce-ui/*.ts": [
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css,html,mjs,js}": [
       "prettier --write"
     ]
   }
