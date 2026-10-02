@@ -14,6 +14,7 @@ reviews:
     - '!**/pnpm-lock.yaml'
     - '!**/package-lock.json'
     - '!**/yarn.lock'
+    - '!scarce-ui/src/components/ui/**'
 
 chat:
   auto_reply: true
