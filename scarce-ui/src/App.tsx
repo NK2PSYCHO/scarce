@@ -1,11 +1,22 @@
+import { CairnForm } from '@/components/CairnForm';
+import type { Cairn } from '@models/cairn';
+
 export default function App() {
+  const sampleValues: Omit<Cairn, 'id'> = {
+    filePath: 'src/example/sample.ts',
+    lineRange: [11, 14],
+    codeSnippet: 'line1\nline2\nline3\nline4',
+    comment: '',
+    severity: 'normal',
+  };
+
   return (
-    <div className="flex flex-col gap-2">
-      <h1 className="text-lg font-semibold">Scarce UI</h1>
-      <p className="text-sm">Hello world</p>
-      <button className="w-fit rounded bg-button px-3 py-1 text-button-fg hover:bg-button-hover">
-        Test button
-      </button>
+    <div className="p-3">
+      <CairnForm
+        initialValues={sampleValues}
+        onSubmit={(values) => console.log(values)}
+        onCancel={() => undefined}
+      />
     </div>
   );
 }
