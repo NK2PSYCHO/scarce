@@ -4,8 +4,8 @@ import type { Cairn } from '@models/cairn';
 export default function App() {
   const sampleValues: Omit<Cairn, 'id'> = {
     filePath: 'src/example/sample.ts',
-    lineRange: [11, 14],
-    codeSnippet: 'line1\nline2\nline3\nline4',
+    lineRange: [11, 30],
+    codeSnippet: Array.from({ length: 20 }, (_, i) => `line${(i + 1).toString()}`).join('\n'),
     comment: '',
     severity: 'normal',
   };

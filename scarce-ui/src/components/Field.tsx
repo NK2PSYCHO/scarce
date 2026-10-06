@@ -9,7 +9,7 @@ export interface FieldProps {
 
 export function Field({ label, htmlFor, children, error }: FieldProps) {
   return (
-    <div>
+    <div className="flex flex-col gap-1.5">
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {error && (

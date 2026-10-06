@@ -40,14 +40,16 @@ export function CairnForm({ initialValues, onSubmit, onCancel }: CairnFormProps)
     >
       <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-foreground">File path:</p>
-          <p className="text-sm text-foreground">{initialValues.filePath}</p>
+          <p className="text-sm leading-none font-medium text-foreground">File path</p>
+          <pre className="w-full overflow-x-auto border border-foreground p-2 text-sm">
+            {initialValues.filePath}
+          </pre>
         </div>
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-foreground">
-            Lines {initialValues.lineRange[0] + 1}–{initialValues.lineRange[1] + 1}
+          <p className="text-sm leading-none font-medium text-foreground">
+            Code Snippet ({initialValues.lineRange[0] + 1} - {initialValues.lineRange[1] + 1})
           </p>
-          <pre className="w-full overflow-x-auto max-h-48 border border-foreground p-2">
+          <pre className="w-full max-h-48 overflow-auto border border-foreground p-2">
             {initialValues.codeSnippet}
           </pre>
         </div>
@@ -79,8 +81,10 @@ export function CairnForm({ initialValues, onSubmit, onCancel }: CairnFormProps)
         </Field>
       </div>
       <div className="flex gap-2">
-        <Button type="submit">Save</Button>
-        <Button type="button" onClick={onCancel}>
+        <Button type="submit" className="flex-1">
+          Save
+        </Button>
+        <Button type="button" className="flex-1" onClick={onCancel}>
           Cancel
         </Button>
       </div>

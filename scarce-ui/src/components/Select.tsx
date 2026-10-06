@@ -22,7 +22,7 @@ export interface SelectProps {
 export function Select({ id, value, onValueChange, options, placeholder }: SelectProps) {
   return (
     <UiSelect value={value} onValueChange={onValueChange}>
-      <UiSelectTrigger id={id}>
+      <UiSelectTrigger id={id} className="w-full">
         <UiSelectValue placeholder={placeholder} />
       </UiSelectTrigger>
       <UiSelectContent>
