@@ -15,6 +15,9 @@ reviews:
     - '!**/package-lock.json'
     - '!**/yarn.lock'
     - '!scarce-ui/src/components/ui/**'
+  tools:
+    biome:
+      enabled: false
 
 chat:
   auto_reply: true
