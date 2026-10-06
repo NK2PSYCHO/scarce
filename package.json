@@ -20,6 +20,24 @@
         "title": "Add as Cairn"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "scarce",
+          "title": "Scarce",
+          "icon": "resources/scarce.svg"
+        }
+      ]
+    },
+    "views": {
+      "scarce": [
+        {
+          "type": "webview",
+          "id": "scarce.sidebar",
+          "name": "Cairns"
+        }
+      ]
+    },
     "menus": {
       "editor/context": [
         {
