@@ -71,4 +71,16 @@ describe('CairnForm', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it('submits the changed severity', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText('Comment'), 'non-empty');
+    await user.click(screen.getByRole('combobox', { name: 'Severity' }));
+    await user.click(screen.getByRole('option', { name: 'High' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ severity: 'high' }));
+  });
 });
