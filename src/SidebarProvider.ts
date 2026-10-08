@@ -1,22 +1,31 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
+import type { CairnDraft, ShowFormMessage } from '../models/messages';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'scarce.sidebar';
 
   private readonly extensionUri: vscode.Uri;
+  private view: vscode.WebviewView | undefined;
 
   constructor(extensionUri: vscode.Uri) {
     this.extensionUri = extensionUri;
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
+    this.view = webviewView;
     const distUri = vscode.Uri.joinPath(this.extensionUri, 'scarce-ui', 'dist');
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [distUri],
     };
     webviewView.webview.html = this.getHtml(webviewView.webview, distUri);
+  }
+
+  public async showForm(draft: CairnDraft): Promise<void> {
+    await vscode.commands.executeCommand('scarce.sidebar.focus');
+    const message: ShowFormMessage = { type: 'showForm', draft };
+    await this.view?.webview.postMessage(message);
   }
 
   private getHtml(webview: vscode.Webview, distUri: vscode.Uri): string {
