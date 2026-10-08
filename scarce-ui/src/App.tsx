@@ -1,20 +1,28 @@
+import { useState } from 'react';
+import type { CairnDraft } from '@models/messages';
 import { CairnForm } from '@/components/CairnForm';
-import type { Cairn } from '@models/cairn';
+import { useExtensionMessages } from '@/hooks/useExtensionMessages';
 
 export default function App() {
-  const sampleValues: Omit<Cairn, 'id'> = {
-    filePath: 'src/example/sample.ts',
-    lineRange: [11, 30],
-    codeSnippet: Array.from({ length: 20 }, (_, i) => `line${(i + 1).toString()}`).join('\n'),
-    comment: '',
-    severity: 'normal',
-  };
+  const [draft, setDraft] = useState<CairnDraft | null>(null);
+
+  useExtensionMessages((message) => {
+    if (message.type === 'showForm') {
+      setDraft(message.draft);
+    }
+  });
+
+  if (draft === null) {
+    return null;
+  }
 
   return (
     <div className="p-3">
       <CairnForm
-        initialValues={sampleValues}
-        onSubmit={(values) => console.log(values)}
+        initialValues={{ ...draft, comment: '', severity: 'normal' }}
+        onSubmit={(values) => {
+          console.log(values);
+        }}
         onCancel={() => undefined}
       />
     </div>
