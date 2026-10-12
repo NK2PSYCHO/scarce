@@ -1,4 +1,4 @@
-import type { CairnStore } from './store/CairnStore';
+import type { CairnStore } from './store/cairnStore';
 import type { SaveResultMessage, WebviewToExtensionMessage } from '../models/messages';
 
 export async function handleWebviewMessage(

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ExtensionToWebviewMessage } from '@models/messages';
 import type { ExtensionClient } from '@/lib/extensionClient';
-import App from '@/App';
+import App from '@/app';
 
 const showForm: ExtensionToWebviewMessage = {
   type: 'showForm',

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Cairn } from '@models/cairn';
-import { CairnForm } from '@/components/CairnForm';
+import { CairnForm } from '@/components/cairnForm';
 
 const baseValues: Omit<Cairn, 'id'> = {
   filePath: '/home/me/proj/src/a.ts',

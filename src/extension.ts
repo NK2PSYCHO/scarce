@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fsp from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import { SidebarProvider } from './SidebarProvider';
-import { FileCairnStore } from './store/CairnStore';
+import { SidebarProvider } from './sidebarProvider';
+import { FileCairnStore } from './store/cairnStore';
 import { captureSelection, EmptySelectionError } from './captureSelection';
 
 export function activate(context: vscode.ExtensionContext) {

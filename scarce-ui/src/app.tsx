@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CairnDraft } from '@models/messages';
-import { CairnForm } from '@/components/CairnForm';
+import { CairnForm } from '@/components/cairnForm';
 import { useExtensionMessages } from '@/hooks/useExtensionMessages';
 import type { ExtensionClient } from '@/lib/extensionClient';
 

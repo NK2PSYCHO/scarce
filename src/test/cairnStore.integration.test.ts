@@ -2,8 +2,8 @@ import * as assert from 'assert';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { FileCairnStore } from '../store/CairnStore';
-import type { CairnFs } from '../store/CairnStore';
+import { FileCairnStore } from '../store/cairnStore';
+import type { CairnFs } from '../store/cairnStore';
 import type { CairnInput } from '../../models/messages';
 
 const realFs: CairnFs = {

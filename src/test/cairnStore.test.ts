@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { FileCairnStore } from '../store/CairnStore';
+import { FileCairnStore } from '../store/cairnStore';
 import { CorruptCairnFileError } from '../store/errors';
 import { createFakeFs, fsError } from './helpers/fakeFs';
 import type { FakeFsHandle } from './helpers/fakeFs';

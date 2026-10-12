@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
 import type { CairnDraft, ShowFormMessage, WebviewToExtensionMessage } from '../models/messages';
-import type { CairnStore } from './store/CairnStore';
+import type { CairnStore } from './store/cairnStore';
 import { handleWebviewMessage } from './handleWebviewMessage';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {

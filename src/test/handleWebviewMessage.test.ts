@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { handleWebviewMessage } from '../handleWebviewMessage';
 import { CorruptCairnFileError } from '../store/errors';
-import type { CairnStore } from '../store/CairnStore';
+import type { CairnStore } from '../store/cairnStore';
 import type { Cairn } from '../../models/cairn';
 import type { CairnInput } from '../../models/messages';
 

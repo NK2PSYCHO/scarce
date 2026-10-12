@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createExtensionClient } from './extensionClient';
+import { createExtensionClient } from '@/lib/extensionClient';
 import type { CairnInput, WebviewToExtensionMessage } from '@models/messages';
 
 const INPUT: CairnInput = {

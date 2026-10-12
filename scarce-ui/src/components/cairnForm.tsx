@@ -1,9 +1,9 @@
 import { Controller, useForm } from 'react-hook-form';
 import type { Cairn, CairnSeverity } from '@models/cairn';
-import { Button } from '@/components/Button';
-import { Field } from '@/components/Field';
-import { Select } from '@/components/Select';
-import { TextArea } from '@/components/TextArea';
+import { Button } from '@/components/button';
+import { Field } from '@/components/field';
+import { Select } from '@/components/select';
+import { TextArea } from '@/components/textArea';
 
 export interface CairnFormFields {
   comment: string;

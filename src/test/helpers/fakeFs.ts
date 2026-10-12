@@ -1,4 +1,4 @@
-import type { CairnFs } from '../../store/CairnStore';
+import type { CairnFs } from '../../store/cairnStore';
 
 export interface FakeOptions {
   files?: Record<string, string>;
