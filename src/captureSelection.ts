@@ -9,7 +9,7 @@ export interface SelectionInput {
 
 export class EmptySelectionError extends Error {
   constructor() {
-    super('Select some code before adding a cairn.');
+    super('A cairn needs a stone: select some code first.');
     this.name = 'EmptySelectionError';
   }
 }
