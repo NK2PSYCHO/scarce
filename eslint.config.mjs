@@ -1,12 +1,19 @@
-// @ts-check
+/**
+ * @packageDocumentation
+ * ESLint flat-config for the workspace (extension host + scarce-ui webview).
+ * Three logical configs: shared TypeScript rules for extension/models, React-specific
+ * rules for scarce-ui, and a lenient override for test files. Prettier is last.
+ */
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
+  // Ignore build outputs and all JS/MJS files (configs, scripts, CI-generated).
   {
     ignores: ['dist/**', 'out/**', '**/*.js', '**/*.mjs'],
   },
+  // Extension host + shared models: strict type-checked recommended + stylistic rules.
   {
     files: ['src/**/*.ts', 'models/**/*.ts'],
     extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
@@ -53,11 +60,15 @@ export default tseslint.config(
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       curly: 'warn',
       eqeqeq: 'warn',
+      // Extension code throws `Error` subclasses with `code` fields; literal-throw ban
+      // stays off so plain `Error(code-string)` factory usage remains idiomatic.
       'no-throw-literal': 'off',
       '@typescript-eslint/only-throw-error': 'warn',
       semi: 'off',
     },
   },
+  // Webview (React): same type-checked baseline plus React Hooks rules; uses the
+  // scarce-ui tsconfig because it is a separate TS project from the extension.
   {
     files: ['scarce-ui/src/**/*.{ts,tsx}'],
     extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
@@ -82,9 +93,12 @@ export default tseslint.config(
       eqeqeq: 'warn',
     },
   },
+  // Test files: allow bare expressions (common `expect(...)` + assertion-library
+  // patterns in the extension tests).
   {
     files: ['src/test/**/*.ts', '**/*.test.ts'],
     rules: { '@typescript-eslint/no-unused-expressions': 'off' },
   },
+  // Must be last: disables formatting-conflicting rules in favour of Prettier.
   eslintConfigPrettier,
 );
