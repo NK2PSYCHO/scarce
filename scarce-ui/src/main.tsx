@@ -1,3 +1,10 @@
+/**
+ * Entry point for the Scarce webview React application. Creates the extension
+ * client and renders the App component.
+ *
+ * @packageDocumentation
+ */
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';

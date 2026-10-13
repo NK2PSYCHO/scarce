@@ -5,17 +5,48 @@ import { Field } from '@/components/field';
 import { Select } from '@/components/select';
 import { TextArea } from '@/components/textArea';
 
+/**
+ * Form fields editable by the user when creating or editing a Cairn.
+ */
 export interface CairnFormFields {
+  /**
+   * User-provided comment explaining why the code snippet was flagged.
+   */
   comment: string;
+
+  /**
+   * Severity level for the Cairn (normal, high, or critical).
+   */
   severity: CairnSeverity;
 }
 
+/**
+ * Props for the CairnForm component.
+ */
 export interface CairnFormProps {
+  /**
+   * Initial values for the form, excluding the auto-generated id.
+   */
   initialValues: Omit<Cairn, 'id'>;
+
+  /**
+   * Callback invoked when the form is submitted with valid values.
+   */
   onSubmit: (values: Omit<Cairn, 'id'>) => void;
+
+  /**
+   * Callback invoked when the user cancels the form.
+   */
   onCancel: () => void;
 }
 
+/**
+ * Renders a form for creating a new Cairn with read-only display of the
+ * captured file path and code snippet, and editable fields for comment
+ * and severity.
+ *
+ * @param props - CairnFormProps for configuring the form.
+ */
 export function CairnForm({ initialValues, onSubmit, onCancel }: CairnFormProps) {
   const {
     register,

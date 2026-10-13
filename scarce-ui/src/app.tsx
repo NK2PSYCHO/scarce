@@ -8,6 +8,14 @@ interface AppProps {
   client: ExtensionClient;
 }
 
+/**
+ * Main application component. Manages the state for the current Cairn draft
+ * and any error messages, and coordinates with the extension via the client.
+ *
+ * @param props - Component props.
+ * @param props.client - Extension client for sending messages to VS Code.
+ * @returns The rendered app or null if no draft is active.
+ */
 export default function App({ client }: AppProps) {
   const [draft, setDraft] = useState<CairnDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
