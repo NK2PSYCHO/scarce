@@ -4,15 +4,28 @@ import type { CairnDraft } from '../models/messages';
  * Raw editor selection data handed to {@link captureSelection}.
  * Kept free of VS Code types so the capture logic stays unit-testable.
  *
- * @property filePath - Absolute path to the file the selection came from.
- * @property text - Exact selected text.
- * @property startLine - First line of the selection (0-indexed, as in the VS Code API).
- * @property endLine - Last line of the selection (0-indexed).
+ * @packageDocumentation
  */
+
 export interface SelectionInput {
+  /**
+   * Absolute path to the file the selection came from.
+   */
   filePath: string;
+
+  /**
+   * Exact selected text.
+   */
   text: string;
+
+  /**
+   * First line of the selection (0-indexed, as in the VS Code API).
+   */
   startLine: number;
+
+  /**
+   * Last line of the selection (0-indexed).
+   */
   endLine: number;
 }
 
