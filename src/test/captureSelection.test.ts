@@ -1,3 +1,9 @@
+/**
+ * @packageDocumentation
+ * Unit tests for `captureSelection`: draft creation with a 0-indexed line
+ * range, exact preservation of multi-line text, and rejection of empty or
+ * whitespace-only selections.
+ */
 import * as assert from 'assert';
 import { captureSelection, EmptySelectionError } from '../captureSelection';
 

@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Parsing and validation of the persisted cairns file.
+ */
+
 import type { Cairn } from '../../models/cairn';
 import { CorruptCairnFileError } from './errors';
 
@@ -5,7 +10,7 @@ import { CorruptCairnFileError } from './errors';
  * Checks if an error represents a "file not found" condition (ENOENT).
  *
  * @param error - The error to check.
- * @returns true if the error is ENOENT, false otherwise.
+ * @returns `true` if the error is ENOENT, otherwise `false`.
  */
 export function isNotFound(error: unknown): boolean {
   return error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT';
@@ -17,7 +22,7 @@ export function isNotFound(error: unknown): boolean {
  *
  * @param raw - The raw JSON string from the cairns file.
  * @returns Array of parsed cairns.
- * @throws {CorruptCairnFileError} If the file is not valid JSON or has an
+ * @throws CorruptCairnFileError if the file is not valid JSON or has an
  *   unexpected shape.
  */
 export function parseCairns(raw: string): Cairn[] {

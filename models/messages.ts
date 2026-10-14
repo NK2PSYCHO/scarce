@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Message types for communication between the extension and the webview.
+ */
+
 import type { CairnSeverity } from './cairn';
 
 /**
@@ -38,7 +43,7 @@ export interface CairnInput extends CairnDraft {
 }
 
 /**
- * Extension -> webview: show the add form pre-filled with the captured draft.
+ * Extension to webview: show the add form pre-filled with the captured draft.
  */
 export interface ShowFormMessage {
   type: 'showForm';
@@ -46,13 +51,18 @@ export interface ShowFormMessage {
 }
 
 /**
- * Extension -> webview: outcome of a save attempt.
+ * Extension to webview: outcome of a save attempt.
+ * Sent when the extension saves a cairn successfully.
  */
 export interface SaveResultOkMessage {
   type: 'saveResult';
   ok: true;
 }
 
+/**
+ * Extension to webview: outcome of a save attempt.
+ * Sent when the extension fails to save a cairn.
+ */
 export interface SaveResultErrorMessage {
   type: 'saveResult';
   ok: false;
@@ -62,10 +72,14 @@ export interface SaveResultErrorMessage {
   error: string;
 }
 
+/**
+ * Extension to webview: outcome of a save attempt.
+ * Discriminated by `ok`: success carries no payload, failure carries an error message.
+ */
 export type SaveResultMessage = SaveResultOkMessage | SaveResultErrorMessage;
 
 /**
- * Webview -> extension: the user submitted the form.
+ * Webview to extension: the user submitted the form.
  */
 export interface SaveCairnMessage {
   type: 'saveCairn';
@@ -73,14 +87,14 @@ export interface SaveCairnMessage {
 }
 
 /**
- * Webview -> extension: the user cancelled the form.
+ * Webview to extension: the user cancelled the form.
  */
 export interface CancelMessage {
   type: 'cancel';
 }
 
-/** Extension -> webview: show the add form pre-filled with the captured draft, or report save outcome. */
+/** Any message the extension can send to the webview. */
 export type ExtensionToWebviewMessage = ShowFormMessage | SaveResultMessage;
 
-/** Webview -> extension: submit a Cairn to save, or cancel the form. */
+/** Any message the webview can send to the extension. */
 export type WebviewToExtensionMessage = SaveCairnMessage | CancelMessage;

@@ -7,20 +7,18 @@
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import reactHooks from 'eslint-plugin-react-hooks';
+import tsdoc from 'eslint-plugin-tsdoc';
 
 export default tseslint.config(
   // Ignore build outputs and all JS/MJS files (configs, scripts, CI-generated).
   {
-    ignores: ['dist/**', 'out/**', '**/*.js', '**/*.mjs'],
+    ignores: ['dist/**', 'out/**', '.vscode-test/**', 'node_modules/**', '**/*.js', '**/*.mjs'],
   },
   // Extension host + shared models: strict type-checked recommended + stylistic rules.
   {
     files: ['src/**/*.ts', 'models/**/*.ts'],
-    extends: [
-      ...tseslint.configs.recommendedTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
-      'plugin:tsdoc/base',
-    ],
+    extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    plugins: { tsdoc },
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -28,6 +26,7 @@ export default tseslint.config(
       },
     },
     rules: {
+      'tsdoc/syntax': 'warn',
       '@typescript-eslint/naming-convention': [
         'warn',
         { selector: 'typeLike', format: ['PascalCase'] },
@@ -75,12 +74,8 @@ export default tseslint.config(
   // scarce-ui tsconfig because it is a separate TS project from the extension.
   {
     files: ['scarce-ui/src/**/*.{ts,tsx}'],
-    extends: [
-      ...tseslint.configs.recommendedTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
-      'plugin:tsdoc/base',
-    ],
-    plugins: { 'react-hooks': reactHooks },
+    extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    plugins: { 'react-hooks': reactHooks, tsdoc },
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.app.json'],
@@ -88,6 +83,7 @@ export default tseslint.config(
       },
     },
     rules: {
+      'tsdoc/syntax': 'warn',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',

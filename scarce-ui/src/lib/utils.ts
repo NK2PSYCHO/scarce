@@ -1,6 +1,6 @@
 /**
- * Re-exports the cn utility from the classnames library for computing
- * conditional CSS classes.
+ * Re-exports the `cn` class-name helper from the `cn` package so components
+ * import it from one app-level location.
  *
  * @packageDocumentation
  */

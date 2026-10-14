@@ -1,16 +1,22 @@
+/**
+ * @packageDocumentation
+ * App-level wrapper around shadcn's Input component.
+ */
+
 import type { ComponentProps } from 'react';
 import { Input as UiInput } from '@/components/ui/input';
 
 /**
- * Thin wrapper over shadcn's Input component providing app-level indirection.
- * Exists to abstract the UI library and allow easy replacement if needed.
+ * Props accepted by {@link Input}; identical to the shadcn Input props.
  */
 export type InputProps = ComponentProps<typeof UiInput>;
 
 /**
- * Renders a shadcn Input with all props passed through.
+ * Thin wrapper over shadcn's Input that passes every prop through. Gives the app
+ * one import point so the UI library can be swapped without touching callers.
  *
- * @param props - InputProps from the shadcn Input component.
+ * @param props - See {@link InputProps}.
+ * @returns The rendered Input.
  */
 export function Input(props: InputProps) {
   return <UiInput {...props} />;

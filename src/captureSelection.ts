@@ -1,12 +1,14 @@
+/**
+ * @packageDocumentation
+ * Turns raw editor selections into drafts for the add-Cairn form.
+ */
+
 import type { CairnDraft } from '../models/messages';
 
 /**
  * Raw editor selection data handed to {@link captureSelection}.
  * Kept free of VS Code types so the capture logic stays unit-testable.
- *
- * @packageDocumentation
  */
-
 export interface SelectionInput {
   /**
    * Absolute path to the file the selection came from.
@@ -46,7 +48,7 @@ export class EmptySelectionError extends Error {
  *
  * @param input - The selection's file path, text and line bounds.
  * @returns A {@link CairnDraft} ready to send to the webview.
- * @throws {EmptySelectionError} If the selected text is empty or whitespace only.
+ * @throws EmptySelectionError if the selected text is empty or whitespace only.
  */
 export function captureSelection(input: SelectionInput): CairnDraft {
   if (input.text.trim() === '') {

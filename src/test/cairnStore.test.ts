@@ -1,3 +1,9 @@
+/**
+ * @packageDocumentation
+ * Unit tests for `FileCairnStore.add` using an in-memory fake filesystem:
+ * file/directory creation, appending, atomic temp-file + rename writes, and
+ * corrupt-file / I/O error handling.
+ */
 import * as assert from 'assert';
 import { FileCairnStore } from '../store/cairnStore';
 import { CorruptCairnFileError } from '../store/errors';

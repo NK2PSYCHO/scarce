@@ -1,4 +1,9 @@
 /**
+ * @packageDocumentation
+ * Core domain model for Cairns: severity tiers and the persisted Cairn shape.
+ */
+
+/**
  * Severity tiers for Cairns, affecting sorting behavior and user notifications.
  *
  * - `normal`: Standard behavior. Added to the file's Cairn list with no special
@@ -11,10 +16,7 @@
  *   normal Cairns. Triggers a one-time-per-session modal warning when the file
  *   is opened, warning that the file contains a critical Cairn and displaying
  *   the counts of critical, high, and normal Cairns.
- *
- * @packageDocumentation
  */
-
 export type CairnSeverity = 'normal' | 'high' | 'critical';
 
 /**

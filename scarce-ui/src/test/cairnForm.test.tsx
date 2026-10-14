@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Component tests for `CairnForm`: read-only path/lines/snippet display,
+ * comment and severity inputs, and Save/Cancel behaviour.
+ */
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

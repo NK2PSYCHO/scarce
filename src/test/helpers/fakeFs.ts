@@ -5,6 +5,9 @@
  */
 import type { CairnFs } from '../../store/cairnStore';
 
+/**
+ * Options for creating a fake filesystem.
+ */
 export interface FakeOptions {
   /** Optional map of file paths to contents to pre-populate the fake FS with. */
   files?: Record<string, string>;
@@ -14,6 +17,9 @@ export interface FakeOptions {
   renameError?: Error;
 }
 
+/**
+ * Handle to a fake filesystem and its recorded state.
+ */
 export interface FakeFsHandle {
   /** The underlying fake CairnFs implementation being mocked. */
   fs: CairnFs;
@@ -23,11 +29,22 @@ export interface FakeFsHandle {
   ops: string[];
 }
 
+/**
+ * Creates an Error carrying a `code`, like Node's `ErrnoException`.
+ *
+ * @param code - The error code, e.g. `ENOENT`.
+ * @returns An Error with the given `code`.
+ */
 export function fsError(code: string): Error {
   return Object.assign(new Error(code), { code });
 }
 
-/** Creates a fake filesystem handle with optional pre-populated files and error hooks. */
+/**
+ * Creates an in-memory {@link CairnFs} with optional seeded files and error hooks.
+ *
+ * @param options - Seed files and errors to inject.
+ * @returns The fake file system plus its recorded files and operations.
+ */
 export function createFakeFs(options: FakeOptions = {}): FakeFsHandle {
   const files = new Map<string, string>(Object.entries(options.files ?? {}));
   const ops: string[] = [];

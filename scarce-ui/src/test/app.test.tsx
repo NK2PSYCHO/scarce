@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Component tests for the root `App`: renders the cairn form when the
+ * extension sends a draft, and handles the save/cancel flow back to the host.
+ */
 import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ExtensionToWebviewMessage } from '@models/messages';

@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Form for adding a Cairn, rendered in the sidebar.
+ */
+
 import { Controller, useForm } from 'react-hook-form';
 import type { Cairn, CairnSeverity } from '@models/cairn';
 import { Button } from '@/components/button';
@@ -41,11 +46,12 @@ export interface CairnFormProps {
 }
 
 /**
- * Renders a form for creating a new Cairn with read-only display of the
- * captured file path and code snippet, and editable fields for comment
- * and severity.
+ * Form for entering a Cairn's comment and severity. The file path, line range
+ * and snippet are shown read-only. Line numbers are 0-indexed in the data and
+ * displayed 1-indexed. The comment is required and trimmed on submit.
  *
- * @param props - CairnFormProps for configuring the form.
+ * @param props - See {@link CairnFormProps}.
+ * @returns The rendered form.
  */
 export function CairnForm({ initialValues, onSubmit, onCancel }: CairnFormProps) {
   const {

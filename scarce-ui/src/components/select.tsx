@@ -63,7 +63,8 @@ export interface SelectProps {
  * Renders a shadcn Select with an options array, providing a simpler API
  * than using the shadcn primitives directly.
  *
- * @param props - SelectProps for configuring the select behavior.
+ * @param props - See {@link SelectProps}.
+ * @returns The rendered select.
  */
 export function Select({ id, value, onValueChange, options, placeholder }: SelectProps) {
   return (

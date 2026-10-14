@@ -1,16 +1,14 @@
+/**
+ * @packageDocumentation
+ * Handles messages received from the webview and delegates persistence to the cairn store.
+ */
+
 import type { CairnStore } from './store/cairnStore';
 import type { SaveResultMessage, WebviewToExtensionMessage } from '../models/messages';
 
 /**
- * Handles messages received from the webview, delegating to the cairn store
- * and returning a save result message. Catches errors and returns them in the
- * response.
- *
- * @packageDocumentation
- */
-
-/**
- * Processes a webview message and persists the cairn to the store.
+ * Processes a webview message and persists the cairn to the store. Store
+ * errors are caught and reported in the result instead of being thrown.
  *
  * @param message - The message from the webview (save or cancel).
  * @param store - The cairn store for persisting data.

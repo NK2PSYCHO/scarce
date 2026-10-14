@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Labelled form field with an optional error message.
+ */
+
 import { Label } from '@/components/label';
 
 /**
@@ -29,7 +34,8 @@ export interface FieldProps {
  * Combines a Label, form control, and optional error message into a single
  * field group with consistent spacing and accessibility.
  *
- * @param props - FieldProps for configuring the field layout.
+ * @param props - See {@link FieldProps}.
+ * @returns The labelled field group.
  */
 export function Field({ label, htmlFor, children, error }: FieldProps) {
   return (

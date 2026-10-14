@@ -12,6 +12,7 @@ import App from './app.tsx';
 import { createExtensionClient } from '@/lib/extensionClient';
 import type { VsCodeApi } from '@/lib/extensionClient';
 
+/** Injected by VS Code into the webview global scope; may be called only once. */
 declare function acquireVsCodeApi(): VsCodeApi;
 
 const container = document.getElementById('root');

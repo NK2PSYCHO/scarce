@@ -1,3 +1,9 @@
+/**
+ * @packageDocumentation
+ * Integration test for `FileCairnStore` against the real filesystem (in an OS
+ * temp directory). Verifies nested directory creation, appends across calls,
+ * and that no temp file is left behind.
+ */
 import * as assert from 'assert';
 import * as fs from 'fs/promises';
 import * as os from 'os';

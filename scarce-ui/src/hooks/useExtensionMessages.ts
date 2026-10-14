@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * React hook for receiving messages posted by the extension host.
+ */
+
 import { useEffect, useRef } from 'react';
 import type { ExtensionToWebviewMessage } from '@models/messages';
 
@@ -16,8 +21,9 @@ function isExtensionMessage(data: unknown): data is ExtensionToWebviewMessage {
 }
 
 /**
- * Hook that registers a message listener for messages from the extension.
- * Calls the provided handler with any showForm or saveResult messages.
+ * Subscribes to messages from the extension for the lifetime of the component.
+ * Only `showForm` and `saveResult` messages reach the handler. The latest
+ * handler is always used, so callers need not memoize it.
  *
  * @param handler - Callback invoked when a message from the extension is received.
  */

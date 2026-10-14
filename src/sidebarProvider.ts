@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Sidebar webview view provider for the Scarce extension.
+ */
+
 import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
 import type { CairnDraft, ShowFormMessage, WebviewToExtensionMessage } from '../models/messages';
@@ -5,14 +10,11 @@ import type { CairnStore } from './store/cairnStore';
 import { handleWebviewMessage } from './handleWebviewMessage';
 
 /**
- * Provides the sidebar webview view for the Scarce extension. Handles webview
- * lifecycle, message passing to the React webview, and displaying the add-Cairn
- * form.
- *
- * @packageDocumentation
+ * Webview view provider for the Scarce sidebar. Owns the webview lifecycle,
+ * relays messages to and from the React app, and shows the add-Cairn form.
  */
-
 export class SidebarProvider implements vscode.WebviewViewProvider {
+  /** View id, matching the entry under `contributes.views` in `package.json`. */
   public static readonly viewType = 'scarce.sidebar';
 
   private readonly extensionUri: vscode.Uri;
@@ -50,6 +52,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  /**
+   * Forwards a webview message to the handler and posts any result back.
+   *
+   * @param message - The message received from the webview.
+   */
   private async handleMessage(message: WebviewToExtensionMessage): Promise<void> {
     const result = await handleWebviewMessage(message, this.store);
     if (result !== undefined) {
@@ -69,6 +76,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     await this.view?.webview.postMessage(message);
   }
 
+  /**
+   * Builds the webview HTML: a shell locked down by a CSP with a per-load
+   * nonce that loads the bundled React app.
+   *
+   * @param webview - The webview the HTML is for, used to resolve resource URIs.
+   * @param distUri - The `scarce-ui/dist` directory containing the built bundle.
+   * @returns The complete HTML document.
+   */
   private getHtml(webview: vscode.Webview, distUri: vscode.Uri): string {
     const nonce = randomBytes(16).toString('hex');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'main.js'));

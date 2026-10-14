@@ -1,20 +1,29 @@
+/**
+ * @packageDocumentation
+ * Root component of the Scarce sidebar webview.
+ */
+
 import { useState } from 'react';
 import type { CairnDraft } from '@models/messages';
 import { CairnForm } from '@/components/cairnForm';
 import { useExtensionMessages } from '@/hooks/useExtensionMessages';
 import type { ExtensionClient } from '@/lib/extensionClient';
 
+/**
+ * Props for the {@link App} component.
+ */
 interface AppProps {
+  /** Client used to send messages from the webview to the extension. */
   client: ExtensionClient;
 }
 
 /**
- * Main application component. Manages the state for the current Cairn draft
- * and any error messages, and coordinates with the extension via the client.
+ * Root component of the sidebar webview. Holds the current Cairn draft and any
+ * save error, and talks to the extension through the client. Renders nothing
+ * until the extension sends a draft.
  *
- * @param props - Component props.
- * @param props.client - Extension client for sending messages to VS Code.
- * @returns The rendered app or null if no draft is active.
+ * @param props - See {@link AppProps}.
+ * @returns The add-Cairn form, or `null` while no draft is active.
  */
 export default function App({ client }: AppProps) {
   const [draft, setDraft] = useState<CairnDraft | null>(null);

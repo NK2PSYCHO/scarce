@@ -4,40 +4,43 @@ import type { CairnInput } from '../../models/messages';
 import { isNotFound, parseCairns } from './parseCairns';
 
 /**
- * File system abstraction for cairn store operations. Allows testability by
- * injecting mock file operations.
- *
- * @param mkdir - Creates a directory recursively.
- * @param readFile - Reads a file as UTF-8 text.
- * @param writeFile - Writes data to a file.
- * @param rename - Renames or moves a file.
+ * File system operations the cairn store depends on. Injected so tests can
+ * substitute an in-memory fake.
  */
 export interface CairnFs {
+  /** Creates a directory, including any missing parents. */
   mkdir(dir: string): Promise<unknown>;
+  /** Reads a file as UTF-8 text. */
   readFile(path: string): Promise<string>;
+  /** Writes UTF-8 text to a file, replacing any existing content. */
   writeFile(path: string, data: string): Promise<unknown>;
+  /** Renames or moves a file. */
   rename(from: string, to: string): Promise<unknown>;
 }
 
 /**
- * Interface for persisting cairns. Defines the add operation for storing a
- * cairn input and returning the saved cairn with its generated ID.
- *
- * @param add - Persists a cairn input and returns the saved cairn.
+ * Persistence contract for cairns.
  */
 export interface CairnStore {
+  /**
+   * Persists a new cairn.
+   *
+   * @param input - The cairn data to save, without an id.
+   * @returns The saved cairn with its generated id.
+   */
   add(input: CairnInput): Promise<Cairn>;
 }
 
 /**
- * A cairn store backed by a JSON file in the file system. Uses atomic writes
- * via temporary file and rename to prevent corruption.
- *
- * @param storePath - Path to the JSON file storing cairns.
- * @param fs - File system operations abstraction.
- * @param generateId - Function for generating unique IDs.
+ * {@link CairnStore} backed by a single JSON file. Writes go to a temporary
+ * file that is renamed over the target, so a crash cannot leave a partial file.
  */
 export class FileCairnStore implements CairnStore {
+  /**
+   * @param storePath - Path of the JSON file holding the cairns.
+   * @param fs - File system operations.
+   * @param generateId - Produces a unique id for each new cairn.
+   */
   constructor(
     private readonly storePath: string,
     private readonly fs: CairnFs,
@@ -45,11 +48,13 @@ export class FileCairnStore implements CairnStore {
   ) {}
 
   /**
-   * Adds a new cairn to the store. Reads existing cairns, appends the new one
-   * with a generated ID, writes to a temp file, then atomically renames.
+   * Appends a cairn to the store. A missing file counts as an empty store.
+   * Reads the existing cairns, writes them plus the new one to a temp file,
+   * then renames it over the store file.
    *
-   * @param input - The cairn data to persist (without ID).
-   * @returns The saved cairn with its generated ID.
+   * @param input - The cairn data to persist, without an id.
+   * @returns The saved cairn with its generated id.
+   * @throws CorruptCairnFileError if the existing file cannot be parsed.
    */
   async add(input: CairnInput): Promise<Cairn> {
     await this.fs.mkdir(path.dirname(this.storePath));

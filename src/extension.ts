@@ -1,3 +1,10 @@
+/**
+ * @packageDocumentation
+ * Extension activation entry point. Registers the sidebar provider and the
+ * `scarce.addAsCairn` command that captures the active editor selection and
+ * opens the add-Cairn form.
+ */
+
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fsp from 'node:fs/promises';
@@ -7,15 +14,8 @@ import { FileCairnStore } from './store/cairnStore';
 import { captureSelection, EmptySelectionError } from './captureSelection';
 
 /**
- * Extension activation entry point. Registers the sidebar provider and the
- * `scarce.addAsCairn` command that captures the active editor selection and
- * opens the add-Cairn form.
- *
- * @packageDocumentation
- */
-
-/**
- * Registers the sidebar provider and add-as-cairn command.
+ * Called by VS Code on activation. Creates the cairn store, then registers the
+ * sidebar provider and the `scarce.addAsCairn` command.
  *
  * @param context - The extension context for storing state and registering subscriptions.
  */

@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Extension Host tests (run via the VS Code test CLI): verifies the "Add as Cairn"
+ * command is declared in package.json, menu-only, registered, and activates the extension.
+ */
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 

@@ -1,8 +1,7 @@
 /**
  * @packageDocumentation
- * Vitest setup for scarce-ui webview tests (shared extension host / webview layer
- * boundary: this file runs only in the webview test environment). Registers jest-dom
- * matchers, unmounts React trees between tests, and stubs DOM APIs jsdom lacks.
+ * Vitest setup for scarce-ui webview tests. Registers jest-dom matchers,
+ * unmounts React trees between tests, and stubs DOM APIs jsdom lacks.
  */
 import '@testing-library/jest-dom/vitest';
 import { afterEach } from 'vitest';

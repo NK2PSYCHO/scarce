@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Unit tests for the `useExtensionMessages` hook: subscribing to messages
+ * sent from the extension host and exposing them to React state.
+ */
 import { describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import type { ExtensionToWebviewMessage } from '@models/messages';

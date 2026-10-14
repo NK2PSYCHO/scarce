@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Unit tests for `handleWebviewMessage`: how webview messages (`saveCairn`,
+ * `cancel`) map to store calls and to ok/error results, including corrupt-file errors.
+ */
 import * as assert from 'assert';
 import { handleWebviewMessage } from '../handleWebviewMessage';
 import { CorruptCairnFileError } from '../store/errors';

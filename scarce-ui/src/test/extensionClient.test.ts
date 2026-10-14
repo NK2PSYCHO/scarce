@@ -1,3 +1,7 @@
+/**
+ * @packageDocumentation
+ * Unit tests for the webview-side extension client (message posting to the extension host).
+ */
 import { describe, expect, it, vi } from 'vitest';
 import { createExtensionClient } from '@/lib/extensionClient';
 import type { CairnInput, WebviewToExtensionMessage } from '@models/messages';
