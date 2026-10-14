@@ -28,11 +28,13 @@ interface AppProps {
 export default function App({ client }: AppProps) {
   const [draft, setDraft] = useState<CairnDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [draftKey, setDraftKey] = useState(0);
 
   useExtensionMessages((message) => {
     if (message.type === 'showForm') {
       setError(null);
       setDraft(message.draft);
+      setDraftKey((k) => k + 1);
       return;
     }
     if (message.ok) {
@@ -55,6 +57,7 @@ export default function App({ client }: AppProps) {
         </p>
       )}
       <CairnForm
+        key={draftKey}
         initialValues={{ ...draft, comment: '', severity: 'normal' }}
         onSubmit={(values) => {
           setError(null);

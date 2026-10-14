@@ -58,6 +58,33 @@ describe('App', () => {
     });
   });
 
+  it('resets the form when a new showForm arrives', async () => {
+    const { saveCairn } = setup();
+    post(showForm);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'old comment' } });
+    post({
+      type: 'showForm',
+      draft: {
+        filePath: '/home/me/proj/src/b.ts',
+        codeSnippet: 'const b = 2;',
+        lineRange: [10, 12],
+      },
+    });
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(screen.getByText('/home/me/proj/src/b.ts')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'new comment' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(saveCairn).toHaveBeenCalledWith({
+        filePath: '/home/me/proj/src/b.ts',
+        codeSnippet: 'const b = 2;',
+        lineRange: [10, 12],
+        comment: 'new comment',
+        severity: 'normal',
+      });
+    });
+  });
+
   it('posts cancel and returns to blank on cancel', () => {
     const { cancel } = setup();
     post(showForm);
