@@ -16,7 +16,11 @@ export default tseslint.config(
   // Extension host + shared models: strict type-checked recommended + stylistic rules.
   {
     files: ['src/**/*.ts', 'models/**/*.ts'],
-    extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    extends: [
+      ...tseslint.configs.recommendedTypeChecked,
+      ...tseslint.configs.stylisticTypeChecked,
+      'plugin:tsdoc/base',
+    ],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -71,7 +75,11 @@ export default tseslint.config(
   // scarce-ui tsconfig because it is a separate TS project from the extension.
   {
     files: ['scarce-ui/src/**/*.{ts,tsx}'],
-    extends: [...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    extends: [
+      ...tseslint.configs.recommendedTypeChecked,
+      ...tseslint.configs.stylisticTypeChecked,
+      'plugin:tsdoc/base',
+    ],
     plugins: { 'react-hooks': reactHooks },
     languageOptions: {
       parserOptions: {
