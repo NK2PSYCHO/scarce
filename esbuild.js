@@ -1,9 +1,18 @@
+/**
+ * @packageDocumentation
+ * Build script for the VS Code extension host bundle. Bundles `src/extension.ts` into
+ * `dist/extension.js` with esbuild (CommonJS, Node platform, `vscode` kept external).
+ * Supports `--production` (minified, no sourcemaps) and `--watch` (long-running rebuilds).
+ */
 const esbuild = require('esbuild');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 /**
+ * esbuild plugin that emits build start/finish messages and error locations in the
+ * format VS Code's problem matcher parses, so watch-mode errors surface in the editor.
+ *
  * @type {import('esbuild').Plugin}
  */
 const esbuildProblemMatcherPlugin = {
@@ -23,6 +32,7 @@ const esbuildProblemMatcherPlugin = {
   },
 };
 
+/** Builds once and exits (no `--watch`), or hands control to the persistent watcher. */
 async function main() {
   const ctx = await esbuild.context({
     entryPoints: ['src/extension.ts'],

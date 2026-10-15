@@ -1,5 +1,6 @@
 name: CI
 
+# Only push/PR to main plus manual dispatch.
 on:
   push:
     branches: [main]
@@ -7,20 +8,24 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# One CI run per ref: a new push cancels the superseded in-flight run.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only token: no job needs write access.
 permissions:
   contents: read
 
 jobs:
+  # Static checks (types, lint, unit tests, formatting) that gate the other jobs.
   verify:
     name: Type-check, lint & format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
+          # Avoid checkout persisting the CI token in the local git config.
           persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
@@ -30,8 +35,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check-types
       - run: pnpm run lint
+      - run: pnpm --filter scarce-ui test
       - run: pnpm run format:check
 
+  # Build the production extension + webview bundles and publish them as artifacts.
   build:
     name: Build (production bundle)
     needs: verify
@@ -39,6 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
+          # Avoid checkout persisting the CI token in the local git config.
           persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
@@ -48,21 +56,25 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node esbuild.js --production
       - run: pnpm run build:ui
+      # Publish the extension host bundle.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist
           path: dist/
           retention-days: 7
+      # Publish the webview bundle separately.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scarce-ui-dist
           path: scarce-ui/dist/
           retention-days: 7
 
+  # Run the VS Code extension integration tests on all three desktop platforms.
   test:
     name: Test (${{ matrix.os }})
     needs: verify
     strategy:
+      # Run every OS to completion even if one fails, to see all platform results.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -70,6 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
+          # Avoid checkout persisting the CI token in the local git config.
           persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
@@ -79,6 +92,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run compile-tests
       - run: pnpm run compile
+      # Linux runners have no display server: launch VS Code under a virtual one.
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run -a pnpm test

@@ -1,21 +1,58 @@
+/**
+ * @packageDocumentation
+ * Form for adding a Cairn, rendered in the sidebar.
+ */
+
 import { Controller, useForm } from 'react-hook-form';
 import type { Cairn, CairnSeverity } from '@models/cairn';
-import { Button } from '@/components/Button';
-import { Field } from '@/components/Field';
-import { Select } from '@/components/Select';
-import { TextArea } from '@/components/TextArea';
+import { Button } from '@/components/button';
+import { Field } from '@/components/field';
+import { Select } from '@/components/select';
+import { TextArea } from '@/components/textArea';
 
+/**
+ * Form fields editable by the user when creating or editing a Cairn.
+ */
 export interface CairnFormFields {
+  /**
+   * User-provided comment explaining why the code snippet was flagged.
+   */
   comment: string;
+
+  /**
+   * Severity level for the Cairn (normal, high, or critical).
+   */
   severity: CairnSeverity;
 }
 
+/**
+ * Props for the CairnForm component.
+ */
 export interface CairnFormProps {
+  /**
+   * Initial values for the form, excluding the auto-generated id.
+   */
   initialValues: Omit<Cairn, 'id'>;
+
+  /**
+   * Callback invoked when the form is submitted with valid values.
+   */
   onSubmit: (values: Omit<Cairn, 'id'>) => void;
+
+  /**
+   * Callback invoked when the user cancels the form.
+   */
   onCancel: () => void;
 }
 
+/**
+ * Form for entering a Cairn's comment and severity. The file path, line range
+ * and snippet are shown read-only. Line numbers are 0-indexed in the data and
+ * displayed 1-indexed. The comment is required and trimmed on submit.
+ *
+ * @param props - See {@link CairnFormProps}.
+ * @returns The rendered form.
+ */
 export function CairnForm({ initialValues, onSubmit, onCancel }: CairnFormProps) {
   const {
     register,
