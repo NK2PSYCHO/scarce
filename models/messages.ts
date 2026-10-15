@@ -11,7 +11,12 @@ import type { CairnSeverity } from './cairn';
  */
 export interface CairnDraft {
   /**
-   * Absolute path to the file the selection came from.
+   * Absolute path of the root folder that `filePath` is relative to.
+   */
+  rootPath: string;
+
+  /**
+   * Path of the file the selection came from, relative to `rootPath`, with forward slashes.
    */
   filePath: string;
 
@@ -30,7 +35,7 @@ export interface CairnDraft {
  * Everything the user submits from the add form: the draft context plus the
  * editable fields. The extension turns this into a Cairn by generating an id.
  */
-export interface CairnInput extends CairnDraft {
+export interface CairnInput extends Omit<CairnDraft, 'rootPath'> {
   /**
    * User-provided notes explaining why the code snippet was flagged.
    */
@@ -100,8 +105,53 @@ export interface ReadyMessage {
   type: 'ready';
 }
 
+/**
+ * Webview to extension: the user wants to pick a different root folder.
+ */
+export interface ChangeRootMessage {
+  type: 'changeRoot';
+}
+
+/**
+ * Extension to webview: outcome of a root change.
+ * Sent when the new root contains the file; carries the recomputed relative path.
+ */
+export interface ChangeRootResultOkMessage {
+  type: 'changeRootResult';
+  ok: true;
+  /**
+   * Absolute path of the newly chosen root folder.
+   */
+  rootPath: string;
+  /**
+   * Path of the file relative to the new root, with forward slashes.
+   */
+  filePath: string;
+}
+
+/**
+ * Extension to webview: outcome of a root change.
+ * Sent when the chosen folder does not contain the file; the previous root stays.
+ */
+export interface ChangeRootResultErrorMessage {
+  type: 'changeRootResult';
+  ok: false;
+  /**
+   * Error message describing why the root was rejected.
+   */
+  error: string;
+}
+
+/**
+ * Extension to webview: outcome of a root change.
+ * Discriminated by `ok`: success carries the new root and relative path, failure an error message.
+ */
+export type ChangeRootResultMessage = ChangeRootResultOkMessage | ChangeRootResultErrorMessage;
+
 /** Any message the extension can send to the webview. */
-export type ExtensionToWebviewMessage = ShowFormMessage | SaveResultMessage;
+export type ExtensionToWebviewMessage =
+  ShowFormMessage | SaveResultMessage | ChangeRootResultMessage;
 
 /** Any message the webview can send to the extension. */
-export type WebviewToExtensionMessage = SaveCairnMessage | CancelMessage | ReadyMessage;
+export type WebviewToExtensionMessage =
+  SaveCairnMessage | CancelMessage | ReadyMessage | ChangeRootMessage;

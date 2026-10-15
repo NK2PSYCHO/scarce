@@ -41,9 +41,15 @@ export function activate(context: vscode.ExtensionContext) {
         void vscode.window.showErrorMessage('Open a file and select some code first.');
         return;
       }
+      const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+      if (!folder) {
+        void vscode.window.showErrorMessage('Open the file inside a workspace folder first.');
+        return;
+      }
       const selection = editor.selection;
       try {
         const draft = captureSelection({
+          rootPath: folder.uri.fsPath,
           filePath: editor.document.uri.fsPath,
           text: editor.document.getText(selection),
           startLine: selection.start.line,

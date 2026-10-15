@@ -11,7 +11,8 @@ import type { CairnStore } from '../store/cairnStore';
 import type { CairnDraft, WebviewToExtensionMessage } from '../../models/messages';
 
 const DRAFT: CairnDraft = {
-  filePath: '/repo/a.ts',
+  rootPath: '/repo',
+  filePath: 'a.ts',
   codeSnippet: 'const a = 1;',
   lineRange: [2, 2],
 };
