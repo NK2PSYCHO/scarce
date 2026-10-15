@@ -34,8 +34,13 @@ export interface CairnStore {
 /**
  * {@link CairnStore} backed by a single JSON file. Writes go to a temporary
  * file that is renamed over the target, so a crash cannot leave a partial file.
+ * Calls to {@link FileCairnStore.add} are serialized through an instance-level
+ * queue, so overlapping saves cannot lose records or share the temp file.
  */
 export class FileCairnStore implements CairnStore {
+  /** Tail of the pending `add` operations; each new add runs after it settles. */
+  private writeQueue: Promise<unknown> = Promise.resolve();
+
   /**
    * @param storePath - Path of the JSON file holding the cairns.
    * @param fs - File system operations.
@@ -48,15 +53,30 @@ export class FileCairnStore implements CairnStore {
   ) {}
 
   /**
-   * Appends a cairn to the store. A missing file counts as an empty store.
-   * Reads the existing cairns, writes them plus the new one to a temp file,
-   * then renames it over the store file.
+   * Appends a cairn to the store. Calls run one at a time, in call order, so
+   * each sees the previous call's result. A failed call rejects only its own
+   * promise and does not block later calls.
    *
    * @param input - The cairn data to persist, without an id.
    * @returns The saved cairn with its generated id.
    * @throws CorruptCairnFileError if the existing file cannot be parsed.
    */
-  async add(input: CairnInput): Promise<Cairn> {
+  add(input: CairnInput): Promise<Cairn> {
+    const result = this.writeQueue.then(() => this.append(input));
+    this.writeQueue = result.catch(() => undefined);
+    return result;
+  }
+
+  /**
+   * Performs one append. A missing file counts as an empty store. Reads the
+   * existing cairns, writes them plus the new one to a temp file, then renames
+   * it over the store file. Must only be called through the queue in `add`.
+   *
+   * @param input - The cairn data to persist, without an id.
+   * @returns The saved cairn with its generated id.
+   * @throws CorruptCairnFileError if the existing file cannot be parsed.
+   */
+  private async append(input: CairnInput): Promise<Cairn> {
     await this.fs.mkdir(path.dirname(this.storePath));
 
     let cairns: Cairn[] = [];

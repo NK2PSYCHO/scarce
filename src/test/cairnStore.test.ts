@@ -121,4 +121,51 @@ suite('FileCairnStore.add', () => {
     await assert.rejects(makeStore(handle).add(input), { message: 'EIO' });
     assert.strictEqual(handle.files.get(STORE_PATH), original);
   });
+
+  test('keeps every cairn when adds overlap', async () => {
+    const handle = createFakeFs();
+    let n = 0;
+    const store = new FileCairnStore(STORE_PATH, handle.fs, () => `id-${String(++n)}`);
+
+    const [first, second] = await Promise.all([
+      store.add({ ...input, comment: 'first' }),
+      store.add({ ...input, comment: 'second' }),
+    ]);
+
+    assert.deepStrictEqual(readStored(handle.files).cairns, [first, second]);
+    assert.deepStrictEqual([first.id, second.id], ['id-1', 'id-2']);
+  });
+
+  test('runs overlapping adds one at a time, each with its own temp write', async () => {
+    const handle = createFakeFs();
+    const store = makeStore(handle);
+
+    await Promise.all([store.add(input), store.add(input), store.add(input)]);
+
+    assert.deepStrictEqual(
+      writeOps(handle.ops),
+      Array.from({ length: 3 }).flatMap(() => [
+        `write ${TMP_PATH}`,
+        `rename ${TMP_PATH} -> ${STORE_PATH}`,
+      ]),
+    );
+    assert.strictEqual(readStored(handle.files).cairns.length, 3);
+  });
+
+  test('a failed add rejects only itself and does not block later adds', async () => {
+    const handle = createFakeFs();
+    let reads = 0;
+    const realRead = handle.fs.readFile.bind(handle.fs);
+    handle.fs.readFile = (p) => {
+      reads += 1;
+      return reads === 1 ? Promise.reject(fsError('EACCES')) : realRead(p);
+    };
+    const store = makeStore(handle);
+
+    const [failed, ok] = await Promise.allSettled([store.add(input), store.add(input)]);
+
+    assert.strictEqual(failed.status, 'rejected');
+    assert.strictEqual(ok.status, 'fulfilled');
+    assert.strictEqual(readStored(handle.files).cairns.length, 1);
+  });
 });
