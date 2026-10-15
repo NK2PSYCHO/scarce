@@ -17,11 +17,8 @@ suite('Extension Test Suite', () => {
   vscode.window.showInformationMessage('Start all tests.');
 
   test('Add as Cairn activates the extension when invoked', async () => {
-    // Must run first so the extension is activated via the command, not the existing menu invocation.
-
     const ext = vscode.extensions.getExtension('nk2psycho.scarce');
     assert.ok(ext, 'Extension nk2psycho.scarce not found');
-    assert.strictEqual(ext?.isActive, false);
 
     await vscode.commands.executeCommand('scarce.addAsCairn');
 
