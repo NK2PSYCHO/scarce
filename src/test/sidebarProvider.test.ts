@@ -102,18 +102,6 @@ suite('SidebarProvider.showForm', () => {
     assert.strictEqual(fake.posted.length, 1);
   });
 
-  test('queues again after the webview is hidden', async () => {
-    const { provider, fake } = setup();
-    fake.receive({ type: 'ready' });
-    fake.setVisible(false);
-    await provider.showForm(DRAFT);
-    assert.deepStrictEqual(fake.posted, []);
-    fake.setVisible(true);
-    fake.receive({ type: 'ready' });
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.deepStrictEqual(fake.posted, [{ type: 'showForm', draft: DRAFT }]);
-  });
-
   test('does not post after the webview is disposed', async () => {
     const { provider, fake } = setup();
     fake.receive({ type: 'ready' });

@@ -32,7 +32,9 @@ export function activate(context: vscode.ExtensionContext) {
   );
   const sidebar = new SidebarProvider(context.extensionUri, store);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebar),
+    vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebar, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
     vscode.commands.registerCommand('scarce.addAsCairn', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
