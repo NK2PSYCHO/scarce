@@ -20,6 +20,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private readonly extensionUri: vscode.Uri;
   private readonly store: CairnStore;
   private view: vscode.WebviewView | undefined;
+  /** Draft waiting for the webview app to signal it is ready to receive it. */
+  private pendingDraft: CairnDraft | undefined;
+  /** True once the current webview's React app has posted `ready`. */
+  private webviewReady = false;
 
   /**
    * Creates a new sidebar provider.
@@ -41,6 +45,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    */
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.view = webviewView;
+    this.webviewReady = false;
     const distUri = vscode.Uri.joinPath(this.extensionUri, 'scarce-ui', 'dist');
     webviewView.webview.options = {
       enableScripts: true,
@@ -48,7 +53,25 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     };
     webviewView.webview.html = this.getHtml(webviewView.webview, distUri);
     webviewView.webview.onDidReceiveMessage((message: WebviewToExtensionMessage) => {
+      if (message.type === 'ready') {
+        if (this.view === webviewView) {
+          this.webviewReady = true;
+          void this.flushPendingDraft();
+        }
+        return;
+      }
       void this.handleMessage(message);
+    });
+    webviewView.onDidChangeVisibility(() => {
+      if (!webviewView.visible && this.view === webviewView) {
+        this.webviewReady = false;
+      }
+    });
+    webviewView.onDidDispose(() => {
+      if (this.view === webviewView) {
+        this.view = undefined;
+        this.webviewReady = false;
+      }
     });
   }
 
@@ -66,14 +89,34 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   /**
    * Shows the add-Cairn form in the sidebar with the provided draft data.
-   * Focuses the sidebar view and posts a showForm message to the webview.
+   * The draft is stored first and delivered once the webview app has posted
+   * `ready`, so it is not lost when the view is opened for the first time or
+   * recreated after being hidden.
    *
    * @param draft - The cairn draft to pre-populate the form with.
    */
   public async showForm(draft: CairnDraft): Promise<void> {
+    this.pendingDraft = draft;
     await vscode.commands.executeCommand('scarce.sidebar.focus');
+    await this.flushPendingDraft();
+  }
+
+  /**
+   * Posts the pending draft if the webview is ready. The draft is cleared
+   * before posting so it is delivered at most once, and restored if VS Code
+   * reports that the message was not delivered.
+   */
+  private async flushPendingDraft(): Promise<void> {
+    const draft = this.pendingDraft;
+    if (!this.webviewReady || this.view === undefined || draft === undefined) {
+      return;
+    }
+    this.pendingDraft = undefined;
     const message: ShowFormMessage = { type: 'showForm', draft };
-    await this.view?.webview.postMessage(message);
+    const delivered = await this.view.webview.postMessage(message);
+    if (!delivered && this.pendingDraft === undefined) {
+      this.pendingDraft = draft;
+    }
   }
 
   /**

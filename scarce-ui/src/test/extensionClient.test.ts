@@ -30,4 +30,12 @@ describe('createExtensionClient', () => {
     expect(postMessage).toHaveBeenCalledTimes(1);
     expect(postMessage).toHaveBeenCalledWith({ type: 'cancel' });
   });
+
+  it('ready posts exactly one message', () => {
+    const postMessage = vi.fn<(message: WebviewToExtensionMessage) => void>();
+    const client = createExtensionClient({ postMessage });
+    client.ready();
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenCalledWith({ type: 'ready' });
+  });
 });

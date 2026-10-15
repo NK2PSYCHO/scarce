@@ -21,13 +21,15 @@ export interface ExtensionClient {
   saveCairn(input: CairnInput): void;
   /** Tells the extension the user cancelled the form. */
   cancel(): void;
+  /** Tells the extension the app has mounted and can receive messages. */
+  ready(): void;
 }
 
 /**
  * Creates an extension client that wraps VS Code's postMessage API.
  *
  * @param api - VS Code webview API instance.
- * @returns An {@link ExtensionClient} that posts `saveCairn` and `cancel` messages.
+ * @returns An {@link ExtensionClient} that posts `saveCairn`, `cancel` and `ready` messages.
  */
 export function createExtensionClient(api: VsCodeApi): ExtensionClient {
   return {
@@ -36,6 +38,9 @@ export function createExtensionClient(api: VsCodeApi): ExtensionClient {
     },
     cancel() {
       api.postMessage({ type: 'cancel' });
+    },
+    ready() {
+      api.postMessage({ type: 'ready' });
     },
   };
 }

@@ -23,12 +23,18 @@ function post(data: unknown) {
 function setup() {
   const saveCairn = vi.fn();
   const cancel = vi.fn();
-  const client: ExtensionClient = { saveCairn, cancel };
+  const ready = vi.fn();
+  const client: ExtensionClient = { saveCairn, cancel, ready };
   render(<App client={client} />);
-  return { saveCairn, cancel };
+  return { saveCairn, cancel, ready };
 }
 
 describe('App', () => {
+  it('announces ready once on mount', () => {
+    const { ready } = setup();
+    expect(ready).toHaveBeenCalledTimes(1);
+  });
+
   it('renders no form until a showForm message arrives', () => {
     setup();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();

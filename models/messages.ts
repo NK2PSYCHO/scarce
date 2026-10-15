@@ -93,8 +93,15 @@ export interface CancelMessage {
   type: 'cancel';
 }
 
+/**
+ * Webview to extension: the React app has mounted and is listening for messages.
+ */
+export interface ReadyMessage {
+  type: 'ready';
+}
+
 /** Any message the extension can send to the webview. */
 export type ExtensionToWebviewMessage = ShowFormMessage | SaveResultMessage;
 
 /** Any message the webview can send to the extension. */
-export type WebviewToExtensionMessage = SaveCairnMessage | CancelMessage;
+export type WebviewToExtensionMessage = SaveCairnMessage | CancelMessage | ReadyMessage;

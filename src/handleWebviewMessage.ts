@@ -10,16 +10,16 @@ import type { SaveResultMessage, WebviewToExtensionMessage } from '../models/mes
  * Processes a webview message and persists the cairn to the store. Store
  * errors are caught and reported in the result instead of being thrown.
  *
- * @param message - The message from the webview (save or cancel).
+ * @param message - The message from the webview (save, cancel or ready).
  * @param store - The cairn store for persisting data.
  * @returns A save result message with success status and optional error message,
- *   or undefined if the message was a cancel.
+ *   or undefined for any message that is not a save.
  */
 export async function handleWebviewMessage(
   message: WebviewToExtensionMessage,
   store: CairnStore,
 ): Promise<SaveResultMessage | undefined> {
-  if (message.type === 'cancel') {
+  if (message.type !== 'saveCairn') {
     return undefined;
   }
   try {

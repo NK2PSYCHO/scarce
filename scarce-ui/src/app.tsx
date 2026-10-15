@@ -3,7 +3,7 @@
  * Root component of the Scarce sidebar webview.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CairnDraft } from '@models/messages';
 import { CairnForm } from '@/components/cairnForm';
 import { useExtensionMessages } from '@/hooks/useExtensionMessages';
@@ -44,6 +44,11 @@ export default function App({ client }: AppProps) {
     }
     setError(message.error);
   });
+
+  // Declared after useExtensionMessages so its listener is attached first.
+  useEffect(() => {
+    client.ready();
+  }, [client]);
 
   if (draft === null) {
     return null;
