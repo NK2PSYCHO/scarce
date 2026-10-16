@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto';
 import type { CairnDraft, ShowFormMessage, WebviewToExtensionMessage } from '../models/messages';
 import type { CairnStore } from './store/cairnStore';
 import { handleWebviewMessage } from './handleWebviewMessage';
+import { resolveRootChange } from './changeRoot';
 
 /**
  * Webview view provider for the Scarce sidebar. Owns the webview lifecycle,
@@ -24,6 +25,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private pendingDraft: CairnDraft | undefined;
   /** True once the current webview's React app has posted `ready`. */
   private webviewReady = false;
+  /** Absolute path of the file the current form is for; used to recompute the relative path on a root change. */
+  private absoluteFile: string | undefined;
+  /** Root folder currently chosen for the form; the folder picker opens here. */
+  private currentRoot: string | undefined;
 
   /**
    * Creates a new sidebar provider.
@@ -76,6 +81,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * @param message - The message received from the webview.
    */
   private async handleMessage(message: WebviewToExtensionMessage): Promise<void> {
+    if (message.type === 'changeRoot') {
+      await this.handleChangeRoot();
+      return;
+    }
     const result = await handleWebviewMessage(message, this.store);
     if (result !== undefined) {
       await this.view?.webview.postMessage(result);
@@ -89,11 +98,42 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * recreated after being hidden.
    *
    * @param draft - The cairn draft to pre-populate the form with.
+   * @param absoluteFilePath - Absolute path of the file the draft was captured from, kept for root changes.
    */
-  public async showForm(draft: CairnDraft): Promise<void> {
+  public async showForm(draft: CairnDraft, absoluteFilePath: string): Promise<void> {
     this.pendingDraft = draft;
+    this.absoluteFile = absoluteFilePath;
+    this.currentRoot = draft.rootPath;
     await vscode.commands.executeCommand('scarce.sidebar.focus');
     await this.flushPendingDraft();
+  }
+
+  /**
+   * Opens a folder picker for the form's root and posts the outcome to the webview.
+   * Does nothing if no form was shown yet or the picker is cancelled. The stored root
+   * only changes when the file is inside the picked folder.
+   */
+  private async handleChangeRoot(): Promise<void> {
+    const absoluteFile = this.absoluteFile;
+    const currentRoot = this.currentRoot;
+    if (absoluteFile === undefined || currentRoot === undefined) {
+      return;
+    }
+    const picked = await vscode.window.showOpenDialog({
+      canSelectFolders: true,
+      canSelectFiles: false,
+      canSelectMany: false,
+      defaultUri: vscode.Uri.file(currentRoot),
+    });
+    const folder = picked?.[0];
+    if (folder === undefined) {
+      return;
+    }
+    const result = resolveRootChange(folder.fsPath, absoluteFile);
+    if (result.ok) {
+      this.currentRoot = result.rootPath;
+    }
+    await this.view?.webview.postMessage(result);
   }
 
   /**

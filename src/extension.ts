@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
           startLine: selection.start.line,
           endLine: selection.end.line,
         });
-        await sidebar.showForm(draft);
+        await sidebar.showForm(draft, editor.document.uri.fsPath);
       } catch (error) {
         if (error instanceof EmptySelectionError) {
           void vscode.window.showErrorMessage(error.message);

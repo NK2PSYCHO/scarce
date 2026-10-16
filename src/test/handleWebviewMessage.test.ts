@@ -68,6 +68,13 @@ suite('handleWebviewMessage', () => {
     assert.strictEqual(calls.length, 0);
   });
 
+  test('changeRoot resolves undefined and never touches the store', async () => {
+    const { store, calls } = fakeStore();
+    const result = await handleWebviewMessage({ type: 'changeRoot' }, store);
+    assert.strictEqual(result, undefined);
+    assert.strictEqual(calls.length, 0);
+  });
+
   test('cancel resolves undefined and never touches the store', async () => {
     const { store, calls } = fakeStore();
     const result = await handleWebviewMessage({ type: 'cancel' }, store);
