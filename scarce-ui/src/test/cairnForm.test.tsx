@@ -6,30 +6,40 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Cairn } from '@models/cairn';
-import { CairnForm } from '@/components/cairnForm';
+import type { CairnDraft } from '@models/messages';
+import { CairnForm, type CairnFormFields } from '@/components/cairnForm';
 
-const baseValues: Omit<Cairn, 'id'> = {
-  filePath: '/home/me/proj/src/a.ts',
+const baseValues: CairnDraft & CairnFormFields = {
+  rootPath: '/home/me/proj',
+  filePath: 'src/a.ts',
   lineRange: [4, 6],
   codeSnippet: 'const a = 1;',
   comment: '',
   severity: 'normal',
 };
 
-function setup(overrides: Partial<Omit<Cairn, 'id'>> = {}) {
+function setup(overrides: Partial<CairnDraft & CairnFormFields> = {}) {
   const initialValues = { ...baseValues, ...overrides };
   const onSubmit = vi.fn();
   const onCancel = vi.fn();
+  const onChangeRoot = vi.fn();
   const user = userEvent.setup();
-  render(<CairnForm initialValues={initialValues} onSubmit={onSubmit} onCancel={onCancel} />);
-  return { user, onSubmit, onCancel, initialValues };
+  render(
+    <CairnForm
+      initialValues={initialValues}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+      onChangeRoot={onChangeRoot}
+    />,
+  );
+  return { user, onSubmit, onCancel, onChangeRoot, initialValues };
 }
 
 describe('CairnForm', () => {
   it('shows the file path, snippet and 1-indexed line range read-only', () => {
     setup();
-    expect(screen.getByText('/home/me/proj/src/a.ts')).toBeInTheDocument();
+    expect(screen.getByText('/home/me/proj')).toBeInTheDocument();
+    expect(screen.getByText('src/a.ts')).toBeInTheDocument();
     expect(screen.getByText('const a = 1;')).toBeInTheDocument();
     expect(screen.getByText('Code Snippet (5 - 7)')).toBeInTheDocument();
     expect(screen.getAllByRole('textbox')).toHaveLength(1);
@@ -56,15 +66,17 @@ describe('CairnForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('submits the trimmed comment together with the unchanged read-only fields', async () => {
-    const { user, onSubmit, initialValues } = setup();
+  it('submits the trimmed comment with the draft fields but without rootPath', async () => {
+    const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText('Comment'), '  fix this  ');
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1);
     });
     expect(onSubmit).toHaveBeenCalledWith({
-      ...initialValues,
+      filePath: 'src/a.ts',
+      lineRange: [4, 6],
+      codeSnippet: 'const a = 1;',
       comment: 'fix this',
       severity: 'normal',
     });
@@ -77,6 +89,18 @@ describe('CairnForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('does not include rootPath in the submitted values', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText('Comment'), 'non-empty');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.not.objectContaining({ rootPath: '/home/me/proj' }),
+    );
+  });
+
   it('submits the changed severity', async () => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText('Comment'), 'non-empty');
@@ -87,5 +111,13 @@ describe('CairnForm', () => {
       expect(onSubmit).toHaveBeenCalledTimes(1);
     });
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ severity: 'high' }));
+  });
+
+  it('calls onChangeRoot without submitting or validating', async () => {
+    const { user, onSubmit, onChangeRoot } = setup();
+    await user.click(screen.getByRole('button', { name: 'Change...' }));
+    expect(onChangeRoot).toHaveBeenCalledTimes(1);
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

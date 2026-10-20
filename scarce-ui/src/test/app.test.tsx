@@ -11,7 +11,12 @@ import App from '@/app';
 
 const showForm: ExtensionToWebviewMessage = {
   type: 'showForm',
-  draft: { filePath: '/home/me/proj/src/a.ts', codeSnippet: 'const a = 1;', lineRange: [4, 6] },
+  draft: {
+    rootPath: '/home/me/proj',
+    filePath: 'src/a.ts',
+    codeSnippet: 'const a = 1;',
+    lineRange: [4, 6],
+  },
 };
 
 function post(data: unknown) {
@@ -24,9 +29,10 @@ function setup() {
   const saveCairn = vi.fn();
   const cancel = vi.fn();
   const ready = vi.fn();
-  const client: ExtensionClient = { saveCairn, cancel, ready };
+  const changeRoot = vi.fn();
+  const client: ExtensionClient = { saveCairn, cancel, ready, changeRoot };
   render(<App client={client} />);
-  return { saveCairn, cancel, ready };
+  return { saveCairn, cancel, ready, changeRoot };
 }
 
 describe('App', () => {
@@ -44,18 +50,19 @@ describe('App', () => {
   it('shows the form for the drafted selection after showForm', () => {
     setup();
     post(showForm);
-    expect(screen.getByText('/home/me/proj/src/a.ts')).toBeInTheDocument();
+    expect(screen.getByText('/home/me/proj')).toBeInTheDocument();
+    expect(screen.getByText('src/a.ts')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
-  it('posts saveCairn with the draft, comment and severity on submit', async () => {
+  it('posts saveCairn with the relative path, snippet, comment and severity, without rootPath', async () => {
     const { saveCairn } = setup();
     post(showForm);
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'check this' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(saveCairn).toHaveBeenCalledWith({
-        filePath: '/home/me/proj/src/a.ts',
+        filePath: 'src/a.ts',
         codeSnippet: 'const a = 1;',
         lineRange: [4, 6],
         comment: 'check this',
@@ -71,18 +78,19 @@ describe('App', () => {
     post({
       type: 'showForm',
       draft: {
-        filePath: '/home/me/proj/src/b.ts',
+        rootPath: '/home/me/proj',
+        filePath: 'src/b.ts',
         codeSnippet: 'const b = 2;',
         lineRange: [10, 12],
       },
     });
     expect(screen.getByRole('textbox')).toHaveValue('');
-    expect(screen.getByText('/home/me/proj/src/b.ts')).toBeInTheDocument();
+    expect(screen.getByText('src/b.ts')).toBeInTheDocument();
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'new comment' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(saveCairn).toHaveBeenCalledWith({
-        filePath: '/home/me/proj/src/b.ts',
+        filePath: 'src/b.ts',
         codeSnippet: 'const b = 2;',
         lineRange: [10, 12],
         comment: 'new comment',
@@ -97,6 +105,85 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+  });
+
+  it('posts changeRoot when Change... is clicked', () => {
+    const { changeRoot, saveCairn } = setup();
+    post(showForm);
+    fireEvent.click(screen.getByRole('button', { name: 'Change...' }));
+    expect(changeRoot).toHaveBeenCalledTimes(1);
+    expect(saveCairn).not.toHaveBeenCalled();
+  });
+
+  it('updates root and path on changeRootResult ok without resetting the form', () => {
+    setup();
+    post(showForm);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'keep me' } });
+    post({
+      type: 'changeRootResult',
+      ok: true,
+      rootPath: '/home/me',
+      filePath: 'proj/src/a.ts',
+    });
+    expect(screen.getByRole('textbox')).toHaveValue('keep me');
+    expect(screen.getByText('/home/me')).toBeInTheDocument();
+    expect(screen.getByText('proj/src/a.ts')).toBeInTheDocument();
+    expect(screen.queryByText('/home/me/proj')).toBeNull();
+  });
+
+  it('saves with the new relative path after a root change', async () => {
+    const { saveCairn } = setup();
+    post(showForm);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'keep me' } });
+    post({
+      type: 'changeRootResult',
+      ok: true,
+      rootPath: '/home/me',
+      filePath: 'proj/src/a.ts',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(saveCairn).toHaveBeenCalledWith({
+        filePath: 'proj/src/a.ts',
+        codeSnippet: 'const a = 1;',
+        lineRange: [4, 6],
+        comment: 'keep me',
+        severity: 'normal',
+      });
+    });
+  });
+
+  it('shows the error and keeps the form, values and old root when changeRootResult fails', () => {
+    setup();
+    post(showForm);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'keep me' } });
+    post({
+      type: 'changeRootResult',
+      ok: false,
+      error: 'not a folder',
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent('not a folder');
+    expect(screen.getByRole('textbox')).toHaveValue('keep me');
+    expect(screen.getByText('/home/me/proj')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('clears the error when a later changeRootResult succeeds', () => {
+    setup();
+    post(showForm);
+    post({
+      type: 'changeRootResult',
+      ok: false,
+      error: 'not a folder',
+    });
+    post({
+      type: 'changeRootResult',
+      ok: true,
+      rootPath: '/home/me',
+      filePath: 'proj/src/a.ts',
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('proj/src/a.ts')).toBeInTheDocument();
   });
 
   it('returns to blank when saveResult ok arrives', () => {

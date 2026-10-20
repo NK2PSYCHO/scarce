@@ -4,7 +4,8 @@
  */
 
 import { Controller, useForm } from 'react-hook-form';
-import type { Cairn, CairnSeverity } from '@models/cairn';
+import type { CairnSeverity } from '@models/cairn';
+import type { CairnDraft, CairnInput } from '@models/messages';
 import { Button } from '@/components/button';
 import { Field } from '@/components/field';
 import { Select } from '@/components/select';
@@ -30,30 +31,36 @@ export interface CairnFormFields {
  */
 export interface CairnFormProps {
   /**
-   * Initial values for the form, excluding the auto-generated id.
+   * Captured draft (root path, file path, snippet, line range) plus the initial comment and severity.
    */
-  initialValues: Omit<Cairn, 'id'>;
+  initialValues: CairnDraft & CairnFormFields;
 
   /**
-   * Callback invoked when the form is submitted with valid values.
+   * Callback invoked when the form is submitted with valid values. The root path is not included.
    */
-  onSubmit: (values: Omit<Cairn, 'id'>) => void;
+  onSubmit: (values: CairnInput) => void;
 
   /**
    * Callback invoked when the user cancels the form.
    */
   onCancel: () => void;
+
+  /**
+   * Callback invoked when the user asks to pick a different root folder.
+   */
+  onChangeRoot: () => void;
 }
 
 /**
- * Form for entering a Cairn's comment and severity. The file path, line range
- * and snippet are shown read-only. Line numbers are 0-indexed in the data and
- * displayed 1-indexed. The comment is required and trimmed on submit.
+ * Form for entering a Cairn's comment and severity. The root and relative path
+ * are shown read-only, a `Change...` button calls onChangeRoot, and onSubmit
+ * omits the root path. Line numbers are 0-indexed in the data and displayed
+ * 1-indexed. The comment is required and trimmed on submit.
  *
  * @param props - See {@link CairnFormProps}.
  * @returns The rendered form.
  */
-export function CairnForm({ initialValues, onSubmit, onCancel }: CairnFormProps) {
+export function CairnForm({ initialValues, onSubmit, onCancel, onChangeRoot }: CairnFormProps) {
   const {
     register,
     formState: { errors },
@@ -70,12 +77,27 @@ export function CairnForm({ initialValues, onSubmit, onCancel }: CairnFormProps)
     <form
       onSubmit={(e) =>
         void handleSubmit((fields) =>
-          onSubmit({ ...initialValues, comment: fields.comment.trim(), severity: fields.severity }),
+          onSubmit({
+            filePath: initialValues.filePath,
+            lineRange: initialValues.lineRange,
+            codeSnippet: initialValues.codeSnippet,
+            comment: fields.comment.trim(),
+            severity: fields.severity,
+          }),
         )(e)
       }
       className="flex flex-col gap-4 w-full"
     >
       <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
+          <p className="text-sm leading-none font-medium text-foreground">Root</p>
+          <pre className="w-full overflow-x-auto border border-foreground p-2 text-sm">
+            {initialValues.rootPath}
+          </pre>
+          <Button type="button" onClick={onChangeRoot}>
+            Change...
+          </Button>
+        </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm leading-none font-medium text-foreground">File path</p>
           <pre className="w-full overflow-x-auto border border-foreground p-2 text-sm">
