@@ -10,7 +10,12 @@ import { useExtensionMessages } from '@/hooks/useExtensionMessages';
 
 const showForm: ExtensionToWebviewMessage = {
   type: 'showForm',
-  draft: { filePath: '/home/me/proj/src/a.ts', codeSnippet: 'const a = 1;', lineRange: [4, 6] },
+  draft: {
+    rootPath: '/home/me/proj',
+    filePath: 'src/a.ts',
+    codeSnippet: 'const a = 1;',
+    lineRange: [4, 6],
+  },
 };
 
 function post(data: unknown) {
@@ -25,6 +30,19 @@ describe('useExtensionMessages', () => {
     renderHook(() => useExtensionMessages(handler));
     post(showForm);
     expect(handler).toHaveBeenCalledExactlyOnceWith(showForm);
+  });
+
+  it('calls the handler with a changeRootResult message', () => {
+    const handler = vi.fn();
+    const result: ExtensionToWebviewMessage = {
+      type: 'changeRootResult',
+      ok: true,
+      rootPath: '/home/me',
+      filePath: 'proj/src/a.ts',
+    };
+    renderHook(() => useExtensionMessages(handler));
+    post(result);
+    expect(handler).toHaveBeenCalledExactlyOnceWith(result);
   });
 
   it('ignores data that is not an extension message', () => {
