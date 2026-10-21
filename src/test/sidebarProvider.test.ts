@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import { SidebarProvider } from '../sidebarProvider';
 import { resolveRootChange } from '../changeRoot';
 import type { CairnStore } from '../store/cairnStore';
+import type { RootMemory } from '../rootMemory';
 import type { CairnDraft, WebviewToExtensionMessage } from '../../models/messages';
 
 const DRAFT: CairnDraft = {
@@ -215,5 +216,53 @@ suite('SidebarProvider.showForm', () => {
     fake.dispose();
     await provider.showForm(DRAFT, FILE);
     assert.deepStrictEqual(fake.posted, []);
+  });
+});
+
+suite('SidebarProvider root memory', () => {
+  const win = vscode.window as unknown as { showOpenDialog: OpenDialog };
+  const original = win.showOpenDialog;
+  let sets: [string, string][] = [];
+  const memory: RootMemory = {
+    get: () => undefined,
+    set: (folder, root) => {
+      sets.push([folder, root]);
+      return Promise.resolve();
+    },
+  };
+
+  async function changeRootWith(pick: vscode.Uri[] | undefined): Promise<void> {
+    sets = [];
+    win.showOpenDialog = () => Promise.resolve(pick);
+    const provider = new SidebarProvider(
+      vscode.Uri.file('/ext'),
+      {} as unknown as CairnStore,
+      memory,
+    );
+    const fake = fakeView();
+    provider.resolveWebviewView(fake.view);
+    fake.receive({ type: 'ready' });
+    await provider.showForm(SRC_DRAFT, SRC_FILE, '/repo/src');
+    fake.receive({ type: 'changeRoot' });
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+
+  teardown(() => {
+    win.showOpenDialog = original;
+  });
+
+  test('saves the picked root for the workspace folder after a successful change', async () => {
+    await changeRootWith([vscode.Uri.file('/repo')]);
+    assert.deepStrictEqual(sets, [['/repo/src', '/repo']]);
+  });
+
+  test('does not save when the picked folder does not contain the file', async () => {
+    await changeRootWith([vscode.Uri.file('/elsewhere')]);
+    assert.deepStrictEqual(sets, []);
+  });
+
+  test('does not save when the picker is cancelled', async () => {
+    await changeRootWith(undefined);
+    assert.deepStrictEqual(sets, []);
   });
 });

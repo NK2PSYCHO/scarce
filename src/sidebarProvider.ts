@@ -9,6 +9,7 @@ import type { CairnDraft, ShowFormMessage, WebviewToExtensionMessage } from '../
 import type { CairnStore } from './store/cairnStore';
 import { handleWebviewMessage } from './handleWebviewMessage';
 import { resolveRootChange } from './changeRoot';
+import type { RootMemory } from './rootMemory';
 
 /**
  * Webview view provider for the Scarce sidebar. Owns the webview lifecycle,
@@ -29,16 +30,22 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private absoluteFile: string | undefined;
   /** Root folder currently chosen for the form; the folder picker opens here. */
   private currentRoot: string | undefined;
+  /** Remembers the root chosen with Change... per workspace folder; optional. */
+  private readonly rootMemory: RootMemory | undefined;
+  /** Workspace folder of the current form; the key the chosen root is remembered under. */
+  private workspaceFolder: string | undefined;
 
   /**
    * Creates a new sidebar provider.
    *
    * @param extensionUri - The URI of the extension installation directory.
    * @param store - The cairn store for persisting cairns.
+   * @param rootMemory - Optional memory of the root chosen per workspace folder.
    */
-  constructor(extensionUri: vscode.Uri, store: CairnStore) {
+  constructor(extensionUri: vscode.Uri, store: CairnStore, rootMemory?: RootMemory) {
     this.extensionUri = extensionUri;
     this.store = store;
+    this.rootMemory = rootMemory;
   }
 
   /**
@@ -99,11 +106,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    *
    * @param draft - The cairn draft to pre-populate the form with.
    * @param absoluteFilePath - Absolute path of the file the draft was captured from, kept for root changes.
+   * @param workspaceFolder - Workspace folder of the file; the key under which a changed root is remembered.
    */
-  public async showForm(draft: CairnDraft, absoluteFilePath: string): Promise<void> {
+  public async showForm(
+    draft: CairnDraft,
+    absoluteFilePath: string,
+    workspaceFolder?: string,
+  ): Promise<void> {
     this.pendingDraft = draft;
     this.absoluteFile = absoluteFilePath;
     this.currentRoot = draft.rootPath;
+    this.workspaceFolder = workspaceFolder;
     await vscode.commands.executeCommand('scarce.sidebar.focus');
     await this.flushPendingDraft();
   }
@@ -132,6 +145,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const result = resolveRootChange(folder.fsPath, absoluteFile);
     if (result.ok) {
       this.currentRoot = result.rootPath;
+      if (this.workspaceFolder !== undefined) {
+        await this.rootMemory?.set(this.workspaceFolder, result.rootPath);
+      }
     }
     await this.view?.webview.postMessage(result);
   }
