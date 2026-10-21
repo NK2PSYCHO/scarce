@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Unit tests for `pickRoot`: selects the remembered root when the file is inside it,
+ * and falls back to the workspace folder otherwise.
+ */
 import { pickRoot } from '../pickRoot';
 import assert from 'assert';
 
