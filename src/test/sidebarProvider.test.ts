@@ -130,7 +130,7 @@ suite('SidebarProvider changeRoot', () => {
     assert.strictEqual(dialogCalls[0]?.canSelectFolders, true);
     assert.strictEqual(dialogCalls[0]?.canSelectFiles, false);
     assert.strictEqual(dialogCalls[0]?.canSelectMany, false);
-    assert.strictEqual(dialogCalls[0]?.defaultUri?.fsPath, '/repo/src');
+    assert.strictEqual(dialogCalls[0]?.defaultUri?.fsPath, vscode.Uri.file('/repo/src').fsPath);
   });
 
   test('changeRoot posts the new root and relative path when the file is inside it', async () => {
@@ -163,7 +163,7 @@ suite('SidebarProvider changeRoot', () => {
     nextPick = [vscode.Uri.file('/repo')];
     await requestChangeRoot(fake);
     await requestChangeRoot(fake);
-    assert.strictEqual(dialogCalls[1]?.defaultUri?.fsPath, '/repo');
+    assert.strictEqual(dialogCalls[1]?.defaultUri?.fsPath, vscode.Uri.file('/repo').fsPath);
   });
 
   test('a rejected root keeps the previous picker default', async () => {
@@ -171,7 +171,7 @@ suite('SidebarProvider changeRoot', () => {
     nextPick = [vscode.Uri.file('/elsewhere')];
     await requestChangeRoot(fake);
     await requestChangeRoot(fake);
-    assert.strictEqual(dialogCalls[1]?.defaultUri?.fsPath, '/repo/src');
+    assert.strictEqual(dialogCalls[1]?.defaultUri?.fsPath, vscode.Uri.file('/repo/src').fsPath);
   });
 
   test('changeRoot before any form is shown does nothing', async () => {

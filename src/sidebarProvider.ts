@@ -16,6 +16,7 @@ import type { RootMemory } from './rootMemory';
  * relays messages to and from the React app, and shows the add-Cairn form.
  */
 export class SidebarProvider implements vscode.WebviewViewProvider {
+  private formId = 0;
   /** View id, matching the entry under `contributes.views` in `package.json`. */
   public static readonly viewType = 'scarce.sidebar';
 
@@ -113,6 +114,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     absoluteFilePath: string,
     workspaceFolder?: string,
   ): Promise<void> {
+    this.formId++;
     this.pendingDraft = draft;
     this.absoluteFile = absoluteFilePath;
     this.currentRoot = draft.rootPath;
@@ -132,6 +134,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (absoluteFile === undefined || currentRoot === undefined) {
       return;
     }
+    const formId = this.formId;
     const picked = await vscode.window.showOpenDialog({
       canSelectFolders: true,
       canSelectFiles: false,
@@ -139,17 +142,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       defaultUri: vscode.Uri.file(currentRoot),
     });
     const folder = picked?.[0];
-    if (folder === undefined) {
+    if (formId !== this.formId || folder === undefined) {
       return;
     }
     const result = resolveRootChange(folder.fsPath, absoluteFile);
     if (result.ok) {
       this.currentRoot = result.rootPath;
-      if (this.workspaceFolder !== undefined) {
-        await this.rootMemory?.set(this.workspaceFolder, result.rootPath);
-      }
     }
     await this.view?.webview.postMessage(result);
+    if (result.ok && this.workspaceFolder !== undefined) {
+      try {
+        await this.rootMemory?.set(this.workspaceFolder, result.rootPath);
+      } catch (err) {
+        console.error('Failed to persist root', err);
+      }
+    }
   }
 
   /**

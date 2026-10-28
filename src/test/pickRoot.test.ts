@@ -4,7 +4,7 @@
  * and falls back to the workspace folder otherwise.
  */
 import { pickRoot } from '../pickRoot';
-import assert from 'assert';
+import * as assert from 'assert';
 
 suite('pickRoot', () => {
   test('should return remembered root when file is inside it', () => {
