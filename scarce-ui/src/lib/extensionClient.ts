@@ -23,13 +23,15 @@ export interface ExtensionClient {
   cancel(): void;
   /** Tells the extension the app has mounted and can receive messages. */
   ready(): void;
+  /** Asks the extension to open the folder picker for a new root. */
+  changeRoot(): void;
 }
 
 /**
  * Creates an extension client that wraps VS Code's postMessage API.
  *
  * @param api - VS Code webview API instance.
- * @returns An {@link ExtensionClient} that posts `saveCairn`, `cancel` and `ready` messages.
+ * @returns An {@link ExtensionClient} that posts `saveCairn`, `cancel`, `ready` and `changeRoot` messages.
  */
 export function createExtensionClient(api: VsCodeApi): ExtensionClient {
   return {
@@ -38,6 +40,9 @@ export function createExtensionClient(api: VsCodeApi): ExtensionClient {
     },
     cancel() {
       api.postMessage({ type: 'cancel' });
+    },
+    changeRoot() {
+      api.postMessage({ type: 'changeRoot' });
     },
     ready() {
       api.postMessage({ type: 'ready' });

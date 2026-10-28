@@ -30,7 +30,8 @@ export interface Cairn {
   id: string;
 
   /**
-   * Absolute path to the file containing the Cairn.
+   * Path to the file containing the Cairn, relative to the root folder it was
+   * saved under, with forward slashes.
    */
   filePath: string;
 

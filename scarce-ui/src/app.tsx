@@ -20,7 +20,8 @@ interface AppProps {
 /**
  * Root component of the sidebar webview. Holds the current Cairn draft and any
  * save error, and talks to the extension through the client. Renders nothing
- * until the extension sends a draft.
+ * until the extension sends a draft. Also applies changeRootResult messages
+ * (updates root and path without resetting the form, or shows the error).
  *
  * @param props - See {@link AppProps}.
  * @returns The add-Cairn form, or `null` while no draft is active.
@@ -35,6 +36,17 @@ export default function App({ client }: AppProps) {
       setError(null);
       setDraft(message.draft);
       setDraftKey((k) => k + 1);
+      return;
+    }
+    if (message.type === 'changeRootResult') {
+      if (message.ok) {
+        setError(null);
+        setDraft((d) =>
+          d === null ? null : { ...d, rootPath: message.rootPath, filePath: message.filePath },
+        );
+      } else {
+        setError(message.error);
+      }
       return;
     }
     if (message.ok) {
@@ -63,6 +75,9 @@ export default function App({ client }: AppProps) {
       )}
       <CairnForm
         key={draftKey}
+        onChangeRoot={() => {
+          client.changeRoot();
+        }}
         initialValues={{ ...draft, comment: '', severity: 'normal' }}
         onSubmit={(values) => {
           setError(null);

@@ -21,6 +21,7 @@ jobs:
   # Static checks (types, lint, unit tests, formatting) that gate the other jobs.
   verify:
     name: Type-check, lint & format
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -41,6 +42,7 @@ jobs:
   # Build the production extension + webview bundles and publish them as artifacts.
   build:
     name: Build (production bundle)
+    timeout-minutes: 10
     needs: verify
     runs-on: ubuntu-latest
     steps:
@@ -72,6 +74,7 @@ jobs:
   # Run the VS Code extension integration tests on all three desktop platforms.
   test:
     name: Test (${{ matrix.os }})
+    timeout-minutes: 20
     needs: verify
     strategy:
       # Run every OS to completion even if one fails, to see all platform results.
@@ -90,8 +93,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run compile-tests
-      - run: pnpm run compile
       # Linux runners have no display server: launch VS Code under a virtual one.
       - name: Run tests (Linux)
         if: runner.os == 'Linux'

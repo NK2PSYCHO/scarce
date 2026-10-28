@@ -2,7 +2,12 @@
   "name": "scarce",
   "publisher": "nk2psycho",
   "displayName": "scarce",
-  "description": "WIP",
+  "description": "Context-based to-do and notes for VS Code: attach comments (cairns) to code snippets.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NK2PSYCHO/scarce"
+  },
   "version": "0.0.1",
   "packageManager": "pnpm@12.6.0",
   "engines": {
@@ -74,7 +79,7 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "24.x",
+    "@types/node": "22.x",
     "@types/vscode": "^1.134.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.0.0",
@@ -89,10 +94,6 @@
     "prettier": "^3.6.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1"
-  },
-  "overrides": {
-    "diff": "^8.0.4",
-    "serialize-javascript": "^7.0.6"
   },
   "lint-staged": {
     "{src,models,scarce-ui/src}/**/*.{ts,tsx}": [

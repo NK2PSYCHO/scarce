@@ -6,3 +6,8 @@ dist/
 out/
 .vscode-test/
 *.vsix
+
+# OS, env and coverage
+.DS_Store
+.env
+coverage/
