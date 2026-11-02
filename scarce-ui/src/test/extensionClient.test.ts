@@ -7,6 +7,7 @@ import { createExtensionClient } from '@/lib/extensionClient';
 import type { CairnInput, WebviewToExtensionMessage } from '@models/messages';
 
 const INPUT: CairnInput = {
+  rootPath: '/repo',
   filePath: '/repo/a.ts',
   codeSnippet: 'const a = 1;',
   lineRange: [2, 2],

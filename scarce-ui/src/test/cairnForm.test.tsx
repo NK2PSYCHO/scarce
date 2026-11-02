@@ -66,7 +66,7 @@ describe('CairnForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('submits the trimmed comment with the draft fields but without rootPath', async () => {
+  it('submits the trimmed comment with the draft fields including rootPath', async () => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText('Comment'), '  fix this  ');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -74,6 +74,7 @@ describe('CairnForm', () => {
       expect(onSubmit).toHaveBeenCalledTimes(1);
     });
     expect(onSubmit).toHaveBeenCalledWith({
+      rootPath: '/home/me/proj',
       filePath: 'src/a.ts',
       lineRange: [4, 6],
       codeSnippet: 'const a = 1;',
@@ -89,15 +90,25 @@ describe('CairnForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('does not include rootPath in the submitted values', async () => {
+  it('includes rootPath in the submitted values', async () => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText('Comment'), 'non-empty');
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1);
     });
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ rootPath: '/home/me/proj' }));
+  });
+
+  it('submits whatever rootPath and filePath it was given', async () => {
+    const { user, onSubmit } = setup({ rootPath: '/home/me', filePath: 'proj/src/a.ts' });
+    await user.type(screen.getByLabelText('Comment'), 'non-empty');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.not.objectContaining({ rootPath: '/home/me/proj' }),
+      expect.objectContaining({ rootPath: '/home/me', filePath: 'proj/src/a.ts' }),
     );
   });
 

@@ -11,6 +11,7 @@ import type { Cairn } from '../../models/cairn';
 import type { CairnInput } from '../../models/messages';
 
 const INPUT: CairnInput = {
+  rootPath: '/repo',
   filePath: '/repo/a.ts',
   codeSnippet: 'const a = 1;',
   lineRange: [2, 2],
@@ -43,6 +44,13 @@ suite('handleWebviewMessage', () => {
     const result = await handleWebviewMessage({ type: 'saveCairn', input: INPUT }, store);
     assert.deepStrictEqual(calls, [INPUT]);
     assert.deepStrictEqual(result, { type: 'saveResult', ok: true });
+  });
+
+  test('saveCairn passes the root path through to the store unchanged', async () => {
+    const { store, calls } = fakeStore();
+    const input = { ...INPUT, rootPath: '/other-root' };
+    await handleWebviewMessage({ type: 'saveCairn', input }, store);
+    assert.strictEqual(calls[0]?.rootPath, '/other-root');
   });
 
   test('saveCairn resolves error when add rejects', async () => {

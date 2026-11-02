@@ -20,6 +20,7 @@ const realFs: CairnFs = {
 };
 
 const input: CairnInput = {
+  rootPath: '/repo',
   filePath: '/repo/a.ts',
   codeSnippet: 'const a = 1;',
   lineRange: [2, 2],
@@ -49,5 +50,26 @@ suite('FileCairnStore (real filesystem)', () => {
     const stored = JSON.parse(await fs.readFile(storePath, 'utf8')) as unknown;
     assert.deepStrictEqual(stored, { version: 1, cairns: [first, second] });
     assert.deepStrictEqual(await fs.readdir(path.dirname(storePath)), ['cairns.json']);
+  });
+
+  test('writes rootPath to disk so equal relative paths under different roots stay distinct', async () => {
+    const storePath = path.join(dir, 'cairns.json');
+    const store = new FileCairnStore(storePath, realFs, () => 'id');
+    const rootA = path.join(dir, 'repo-a');
+    const rootB = path.join(dir, 'repo-b');
+
+    await store.add({ ...input, rootPath: rootA, filePath: 'src/a.ts' });
+    await store.add({ ...input, rootPath: rootB, filePath: 'src/a.ts' });
+
+    const stored = JSON.parse(await fs.readFile(storePath, 'utf8')) as {
+      cairns: { rootPath: string; filePath: string }[];
+    };
+    assert.deepStrictEqual(
+      stored.cairns.map((c) => [c.rootPath, c.filePath]),
+      [
+        [rootA, 'src/a.ts'],
+        [rootB, 'src/a.ts'],
+      ],
+    );
   });
 });

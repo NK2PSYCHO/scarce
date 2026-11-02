@@ -30,8 +30,14 @@ export interface Cairn {
   id: string;
 
   /**
-   * Path to the file containing the Cairn, relative to the root folder it was
-   * saved under, with forward slashes.
+   * Absolute path of the root folder that `filePath` is relative to. Stored so
+   * the original file can be recovered even when two roots share a relative path.
+   */
+  rootPath: string;
+
+  /**
+   * Path to the file containing the Cairn, relative to `rootPath`, with
+   * forward slashes.
    */
   filePath: string;
 

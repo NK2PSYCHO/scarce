@@ -36,7 +36,7 @@ export interface CairnFormProps {
   initialValues: CairnDraft & CairnFormFields;
 
   /**
-   * Callback invoked when the form is submitted with valid values. The root path is not included.
+   * Callback invoked when the form is submitted with valid values. Includes the root path.
    */
   onSubmit: (values: CairnInput) => void;
 
@@ -54,7 +54,7 @@ export interface CairnFormProps {
 /**
  * Form for entering a Cairn's comment and severity. The root and relative path
  * are shown read-only, a `Change...` button calls onChangeRoot, and onSubmit
- * omits the root path. Line numbers are 0-indexed in the data and displayed
+ * includes the root path. Line numbers are 0-indexed in the data and displayed
  * 1-indexed. The comment is required and trimmed on submit.
  *
  * @param props - See {@link CairnFormProps}.
@@ -78,6 +78,7 @@ export function CairnForm({ initialValues, onSubmit, onCancel, onChangeRoot }: C
       onSubmit={(e) =>
         void handleSubmit((fields) =>
           onSubmit({
+            rootPath: initialValues.rootPath,
             filePath: initialValues.filePath,
             lineRange: initialValues.lineRange,
             codeSnippet: initialValues.codeSnippet,

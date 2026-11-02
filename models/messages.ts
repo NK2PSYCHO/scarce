@@ -35,7 +35,7 @@ export interface CairnDraft {
  * Everything the user submits from the add form: the draft context plus the
  * editable fields. The extension turns this into a Cairn by generating an id.
  */
-export interface CairnInput extends Omit<CairnDraft, 'rootPath'> {
+export interface CairnInput extends CairnDraft {
   /**
    * User-provided notes explaining why the code snippet was flagged.
    */

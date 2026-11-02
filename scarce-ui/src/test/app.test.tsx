@@ -55,13 +55,14 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
-  it('posts saveCairn with the relative path, snippet, comment and severity, without rootPath', async () => {
+  it('posts saveCairn with the relative path, snippet, comment and severity and rootPath', async () => {
     const { saveCairn } = setup();
     post(showForm);
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'check this' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(saveCairn).toHaveBeenCalledWith({
+        rootPath: '/home/me/proj',
         filePath: 'src/a.ts',
         codeSnippet: 'const a = 1;',
         lineRange: [4, 6],
@@ -78,7 +79,7 @@ describe('App', () => {
     post({
       type: 'showForm',
       draft: {
-        rootPath: '/home/me/proj',
+        rootPath: '/home/me/other',
         filePath: 'src/b.ts',
         codeSnippet: 'const b = 2;',
         lineRange: [10, 12],
@@ -90,6 +91,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(saveCairn).toHaveBeenCalledWith({
+        rootPath: '/home/me/other',
         filePath: 'src/b.ts',
         codeSnippet: 'const b = 2;',
         lineRange: [10, 12],
@@ -144,7 +146,26 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => {
       expect(saveCairn).toHaveBeenCalledWith({
+        rootPath: '/home/me',
         filePath: 'proj/src/a.ts',
+        codeSnippet: 'const a = 1;',
+        lineRange: [4, 6],
+        comment: 'keep me',
+        severity: 'normal',
+      });
+    });
+  });
+
+  it('still saves under the old root after a failed root change', async () => {
+    const { saveCairn } = setup();
+    post(showForm);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'keep me' } });
+    post({ type: 'changeRootResult', ok: false, error: 'not a folder' });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(saveCairn).toHaveBeenCalledWith({
+        rootPath: '/home/me/proj',
+        filePath: 'src/a.ts',
         codeSnippet: 'const a = 1;',
         lineRange: [4, 6],
         comment: 'keep me',
