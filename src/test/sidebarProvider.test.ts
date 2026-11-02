@@ -138,7 +138,12 @@ suite('SidebarProvider changeRoot', () => {
     nextPick = [vscode.Uri.file('/repo')];
     await requestChangeRoot(fake);
     assert.deepStrictEqual(fake.posted, [
-      { type: 'changeRootResult', ok: true, rootPath: '/repo', filePath: 'src/a.ts' },
+      {
+        type: 'changeRootResult',
+        ok: true,
+        rootPath: vscode.Uri.file('/repo').fsPath,
+        filePath: 'src/a.ts',
+      },
     ]);
   });
 
@@ -146,7 +151,9 @@ suite('SidebarProvider changeRoot', () => {
     const fake = await readyForm();
     nextPick = [vscode.Uri.file('/elsewhere')];
     await requestChangeRoot(fake);
-    assert.deepStrictEqual(fake.posted, [resolveRootChange('/elsewhere', SRC_FILE)]);
+    assert.deepStrictEqual(fake.posted, [
+      resolveRootChange(vscode.Uri.file('/elsewhere').fsPath, SRC_FILE),
+    ]);
     const posted = fake.posted[0] as { ok?: boolean };
     assert.strictEqual(posted.ok, false);
   });
@@ -253,7 +260,7 @@ suite('SidebarProvider root memory', () => {
 
   test('saves the picked root for the workspace folder after a successful change', async () => {
     await changeRootWith([vscode.Uri.file('/repo')]);
-    assert.deepStrictEqual(sets, [['/repo/src', '/repo']]);
+    assert.deepStrictEqual(sets, [['/repo/src', vscode.Uri.file('/repo').fsPath]]);
   });
 
   test('does not save when the picked folder does not contain the file', async () => {
