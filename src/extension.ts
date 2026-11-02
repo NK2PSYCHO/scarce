@@ -12,6 +12,8 @@ import { randomUUID } from 'node:crypto';
 import { SidebarProvider } from './sidebarProvider';
 import { FileCairnStore } from './store/cairnStore';
 import { captureSelection, EmptySelectionError } from './captureSelection';
+import { pickRoot } from './pickRoot';
+import type { RootMemory } from './rootMemory';
 
 /**
  * Called by VS Code on activation. Creates the cairn store, then registers the
@@ -30,7 +32,11 @@ export function activate(context: vscode.ExtensionContext) {
     },
     () => randomUUID(),
   );
-  const sidebar = new SidebarProvider(context.extensionUri, store);
+  const rootMemory: RootMemory = {
+    get: (folder) => context.workspaceState.get<string>(`scarce.root:${folder}`),
+    set: (folder, root) => context.workspaceState.update(`scarce.root:${folder}`, root),
+  };
+  const sidebar = new SidebarProvider(context.extensionUri, store, rootMemory);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebar, {
       webviewOptions: { retainContextWhenHidden: true },
@@ -41,15 +47,25 @@ export function activate(context: vscode.ExtensionContext) {
         void vscode.window.showErrorMessage('Open a file and select some code first.');
         return;
       }
+      const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+      if (!folder) {
+        void vscode.window.showErrorMessage('Open the file inside a workspace folder first.');
+        return;
+      }
       const selection = editor.selection;
       try {
         const draft = captureSelection({
+          rootPath: pickRoot(
+            folder.uri.fsPath,
+            rootMemory.get(folder.uri.fsPath),
+            editor.document.uri.fsPath,
+          ),
           filePath: editor.document.uri.fsPath,
           text: editor.document.getText(selection),
           startLine: selection.start.line,
           endLine: selection.end.line,
         });
-        await sidebar.showForm(draft);
+        await sidebar.showForm(draft, editor.document.uri.fsPath, folder.uri.fsPath);
       } catch (error) {
         if (error instanceof EmptySelectionError) {
           void vscode.window.showErrorMessage(error.message);

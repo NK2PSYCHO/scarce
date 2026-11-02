@@ -11,6 +11,7 @@ import type { Cairn } from '../../models/cairn';
 import type { CairnInput } from '../../models/messages';
 
 const INPUT: CairnInput = {
+  rootPath: '/repo',
   filePath: '/repo/a.ts',
   codeSnippet: 'const a = 1;',
   lineRange: [2, 2],
@@ -45,6 +46,13 @@ suite('handleWebviewMessage', () => {
     assert.deepStrictEqual(result, { type: 'saveResult', ok: true });
   });
 
+  test('saveCairn passes the root path through to the store unchanged', async () => {
+    const { store, calls } = fakeStore();
+    const input = { ...INPUT, rootPath: '/other-root' };
+    await handleWebviewMessage({ type: 'saveCairn', input }, store);
+    assert.strictEqual(calls[0]?.rootPath, '/other-root');
+  });
+
   test('saveCairn resolves error when add rejects', async () => {
     const { store } = fakeStore(new Error('disk full'));
     const result = await handleWebviewMessage({ type: 'saveCairn', input: INPUT }, store);
@@ -64,6 +72,13 @@ suite('handleWebviewMessage', () => {
   test('ready resolves undefined and never touches the store', async () => {
     const { store, calls } = fakeStore();
     const result = await handleWebviewMessage({ type: 'ready' }, store);
+    assert.strictEqual(result, undefined);
+    assert.strictEqual(calls.length, 0);
+  });
+
+  test('changeRoot resolves undefined and never touches the store', async () => {
+    const { store, calls } = fakeStore();
+    const result = await handleWebviewMessage({ type: 'changeRoot' }, store);
     assert.strictEqual(result, undefined);
     assert.strictEqual(calls.length, 0);
   });

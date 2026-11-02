@@ -21,6 +21,7 @@ interface StoredFile {
 }
 
 const input: CairnInput = {
+  rootPath: '/repo',
   filePath: '/repo/a.ts',
   codeSnippet: 'const a = 1;',
   lineRange: [2, 2],
@@ -30,6 +31,7 @@ const input: CairnInput = {
 
 const existing: Cairn = {
   id: 'old-id',
+  rootPath: '/repo',
   filePath: '/repo/b.ts',
   codeSnippet: 'let b;',
   lineRange: [0, 0],
@@ -63,6 +65,20 @@ suite('FileCairnStore.add', () => {
     const saved = await makeStore(handle).add(input);
 
     assert.deepStrictEqual(saved, { id: 'new-id', ...input });
+  });
+
+  test('keeps cairns from different roots with the same relative path distinguishable', async () => {
+    const handle = createFakeFs();
+    const store = makeStore(handle);
+    const a = await store.add({ ...input, rootPath: '/repo-a', filePath: 'src/a.ts' });
+    const b = await store.add({ ...input, rootPath: '/repo-b', filePath: 'src/a.ts' });
+
+    const stored = readStored(handle.files).cairns;
+    assert.deepStrictEqual(stored, [a, b]);
+    assert.deepStrictEqual(
+      stored.map((c) => c.rootPath),
+      ['/repo-a', '/repo-b'],
+    );
   });
 
   test('appends to existing cairns and keeps them intact', async () => {

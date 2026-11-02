@@ -100,7 +100,7 @@ export default tseslint.config(
   // Test files: allow bare expressions (common `expect(...)` + assertion-library
   // patterns in the extension tests).
   {
-    files: ['src/test/**/*.ts', '**/*.test.ts'],
+    files: ['src/test/**/*.ts', '**/*.test.ts', '**/*.test.tsx'],
     rules: { '@typescript-eslint/no-unused-expressions': 'off' },
   },
   // Must be last: disables formatting-conflicting rules in favour of Prettier.
