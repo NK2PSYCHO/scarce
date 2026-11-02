@@ -135,6 +135,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       return;
     }
     const formId = this.formId;
+    const workspaceKey = this.workspaceFolder;
     const picked = await vscode.window.showOpenDialog({
       canSelectFolders: true,
       canSelectFiles: false,
@@ -150,9 +151,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.currentRoot = result.rootPath;
     }
     await this.view?.webview.postMessage(result);
-    if (result.ok && this.workspaceFolder !== undefined) {
+    if (result.ok && workspaceKey !== undefined) {
       try {
-        await this.rootMemory?.set(this.workspaceFolder, result.rootPath);
+        await this.rootMemory?.set(workspaceKey, result.rootPath);
       } catch (err) {
         console.error('Failed to persist root', err);
       }
