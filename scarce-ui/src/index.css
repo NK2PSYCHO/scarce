@@ -73,7 +73,7 @@
 
 Body {
   margin: 0;
-  padding: 16px;
+  padding: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--vscode-font-family);

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import type { CairnDraft } from '@models/messages';
 import { CairnForm } from '@/components/cairnForm';
+import { FixtureCairnList } from '@/temp/fixtureCairns'; // TEMP-FIXTURE
 import { useExtensionMessages } from '@/hooks/useExtensionMessages';
 import type { ExtensionClient } from '@/lib/extensionClient';
 
@@ -63,7 +64,11 @@ export default function App({ client }: AppProps) {
   }, [client]);
 
   if (draft === null) {
-    return null;
+    return (
+      <div className="p-2">
+        <FixtureCairnList /> {/* TEMP-FIXTURE */}
+      </div>
+    );
   }
 
   return (
