@@ -62,6 +62,9 @@ describe('SnippetBlock', () => {
 
     await user.keyboard(key);
     expect(block).toHaveAttribute('aria-expanded', 'true');
+
+    await user.keyboard(key);
+    expect(block).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('preserves leading indentation and drops trailing whitespace', () => {

@@ -17,6 +17,19 @@ describe('SeverityBadge', () => {
     expect(screen.getByText(label)).toHaveAttribute('data-severity', severity);
   });
 
+  it('applies the theme colour classes to high and critical', () => {
+    const { unmount } = render(<SeverityBadge severity="high" />);
+    const high = screen.getByText('High');
+    expect(high).toHaveClass('text-(color:--vscode-editorWarning-foreground)');
+    expect(high).not.toHaveClass('text-muted-foreground');
+    unmount();
+
+    render(<SeverityBadge severity="critical" />);
+    const critical = screen.getByText('Critical');
+    expect(critical).toHaveClass('text-(color:--vscode-editorError-foreground)');
+    expect(critical).not.toHaveClass('text-muted-foreground');
+  });
+
   it('merges an extra className onto the badge', () => {
     render(<SeverityBadge severity="high" className="ml-2" />);
     expect(screen.getByText('High')).toHaveClass('ml-2');

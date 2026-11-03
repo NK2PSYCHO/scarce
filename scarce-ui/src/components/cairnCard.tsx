@@ -3,7 +3,7 @@
  * Card showing a single Cairn: location, severity, comment and snippet.
  */
 
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import type { Cairn } from '@models/cairn';
 import { SeverityBadge } from '@/components/severityBadge';
 import { SnippetBlock } from '@/components/snippetBlock';
@@ -19,8 +19,9 @@ export interface CairnCardProps {
   cairn: Cairn;
 
   /**
-   * Callback invoked when the user clicks the card, or presses Enter or Space on
-   * it, anywhere except the snippet and the actions slot.
+   * Callback invoked when the user clicks the card anywhere except the snippet
+   * and the actions slot, or activates the navigation button (file name and
+   * location) with Enter or Space.
    */
   onNavigate: (cairn: Cairn) => void;
 
@@ -61,11 +62,12 @@ function formatLineRange([start, end]: [number, number]): string {
 }
 
 /**
- * Renders one Cairn. Clicking the card (or pressing Enter or Space while it is
- * focused) calls onNavigate. The snippet block expands on click without
- * navigating, and the actions slot swallows clicks so its buttons do not
- * navigate either. The directory is truncated from the left so the file name
- * stays visible in a narrow sidebar.
+ * Renders one Cairn. Clicking the card calls onNavigate for mouse users, and the
+ * file name and location are wrapped in a real button so keyboard and
+ * assistive-technology users can find and activate navigation. The snippet block
+ * expands on click without navigating, and the actions slot swallows clicks so
+ * its buttons do not navigate either. The directory is truncated from the left
+ * and a long file name wraps, so both stay inside the card in a narrow sidebar.
  *
  * @param props - See {@link CairnCardProps}.
  * @returns The rendered card.
@@ -74,50 +76,48 @@ export function CairnCard({ cairn, onNavigate, actions, className }: CairnCardPr
   const { dir, name } = splitPath(cairn.filePath);
   const lineLabel = formatLineRange(cairn.lineRange);
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    // Ignore keys pressed on inner controls (snippet, action buttons).
-    if (event.target !== event.currentTarget) {
-      return;
-    }
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onNavigate(cairn);
-    }
-  };
-
   const stopPropagation = (event: MouseEvent) => {
     event.stopPropagation();
   };
 
   return (
     <article
-      tabIndex={0}
       aria-label={`Cairn in ${cairn.filePath}, ${lineLabel}`}
       onClick={() => {
         onNavigate(cairn);
       }}
-      onKeyDown={handleKeyDown}
       className={cn(
         'flex cursor-pointer flex-col gap-2 rounded-sm border border-border p-2',
-        'hover:bg-accent focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
+        'hover:bg-accent',
         className,
       )}
     >
       <header className="flex items-start gap-2">
-        <div className="flex min-w-0 flex-1 flex-col gap-1" title={cairn.filePath}>
-          <div className="flex items-baseline gap-1">
-            <span className="shrink-0 text-sm font-medium">{name}</span>
+        <button
+          type="button"
+          aria-label={`Go to ${cairn.filePath}, ${lineLabel}`}
+          title={cairn.filePath}
+          onClick={(event) => {
+            // Navigate here and stop the bubble so the card's own click handler
+            // does not navigate a second time.
+            event.stopPropagation();
+            onNavigate(cairn);
+          }}
+          className="flex min-w-0 flex-1 cursor-pointer flex-col gap-1 rounded-sm text-left focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <span className="flex items-baseline gap-1">
+            <span className="min-w-0 text-sm font-medium break-all">{name}</span>
             {dir && (
               <span className="min-w-0 truncate text-left text-xs text-muted-foreground [direction:rtl]">
                 <bdi>{dir}</bdi>
               </span>
             )}
-          </div>
-          <div className="flex items-center gap-2">
+          </span>
+          <span className="flex items-center gap-2">
             <SeverityBadge severity={cairn.severity} />
             <span className="text-xs text-muted-foreground">{lineLabel}</span>
-          </div>
-        </div>
+          </span>
+        </button>
         {actions && (
           <div className="flex shrink-0 items-center gap-1" onClick={stopPropagation}>
             {actions}

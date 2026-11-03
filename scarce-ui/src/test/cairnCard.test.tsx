@@ -28,7 +28,7 @@ describe('CairnCard', () => {
     expect(screen.getByText('Lines 5–8')).toBeInTheDocument();
     expect(screen.getByText('High')).toBeInTheDocument();
     expect(screen.getByText('Fix this later')).toBeInTheDocument();
-    expect(screen.getByRole('button').textContent).toContain('line 1');
+    expect(screen.getByRole('button', { expanded: false }).textContent).toContain('line 1');
   });
 
   it('labels a single-line cairn as "Line N"', () => {
@@ -51,13 +51,32 @@ describe('CairnCard', () => {
     expect(onNavigate).toHaveBeenCalledExactlyOnceWith(baseCairn);
   });
 
-  it.each(['{Enter}', ' '])('navigates when %j is pressed on the focused card', async (key) => {
+  it('exposes navigation as a named button for assistive technology', () => {
+    render(<CairnCard cairn={baseCairn} onNavigate={vi.fn()} />);
+    expect(
+      screen.getByRole('button', { name: 'Go to src/utils/parse.ts, Lines 5–8' }),
+    ).toBeInTheDocument();
+  });
+
+  it.each(['{Enter}', ' '])(
+    'navigates once when %j is pressed on the focused navigation button',
+    async (key) => {
+      const user = userEvent.setup();
+      const onNavigate = vi.fn();
+      render(<CairnCard cairn={baseCairn} onNavigate={onNavigate} />);
+      screen.getByRole('button', { name: /^Go to / }).focus();
+
+      await user.keyboard(key);
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith(baseCairn);
+    },
+  );
+
+  it('navigates once when the navigation button is clicked', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
     render(<CairnCard cairn={baseCairn} onNavigate={onNavigate} />);
-    screen.getByRole('article').focus();
 
-    await user.keyboard(key);
+    await user.click(screen.getByRole('button', { name: /^Go to / }));
     expect(onNavigate).toHaveBeenCalledExactlyOnceWith(baseCairn);
   });
 
@@ -65,7 +84,7 @@ describe('CairnCard', () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
     render(<CairnCard cairn={baseCairn} onNavigate={onNavigate} />);
-    const snippet = screen.getByRole('button');
+    const snippet = screen.getByRole('button', { expanded: false });
 
     await user.click(snippet);
     expect(snippet).toHaveAttribute('aria-expanded', 'true');
@@ -76,7 +95,7 @@ describe('CairnCard', () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
     render(<CairnCard cairn={baseCairn} onNavigate={onNavigate} />);
-    screen.getByRole('button').focus();
+    screen.getByRole('button', { expanded: false }).focus();
 
     await user.keyboard('{Enter}');
     expect(onNavigate).not.toHaveBeenCalled();
