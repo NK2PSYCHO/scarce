@@ -95,7 +95,7 @@ export function CairnCard({ cairn, onNavigate, actions, className }: CairnCardPr
       <header className="flex items-start gap-2">
         <button
           type="button"
-          aria-label={`Go to ${cairn.filePath}, ${lineLabel}`}
+          aria-label={`Go to ${cairn.filePath}, ${lineLabel}, ${cairn.severity} severity`}
           title={cairn.filePath}
           onClick={(event) => {
             // Navigate here and stop the bubble so the card's own click handler

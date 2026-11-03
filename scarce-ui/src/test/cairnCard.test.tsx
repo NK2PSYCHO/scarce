@@ -54,7 +54,7 @@ describe('CairnCard', () => {
   it('exposes navigation as a named button for assistive technology', () => {
     render(<CairnCard cairn={baseCairn} onNavigate={vi.fn()} />);
     expect(
-      screen.getByRole('button', { name: 'Go to src/utils/parse.ts, Lines 5–8' }),
+      screen.getByRole('button', { name: 'Go to src/utils/parse.ts, Lines 5–8, high severity' }),
     ).toBeInTheDocument();
   });
 
