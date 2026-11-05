@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://cubic.dev/schema/cubic-repository-config.schema.json
+# cubic.yaml - AI review settings for scarce.
+# Docs: https://docs.cubic.dev/configure/cubic-yaml
+version: 1
+
+reviews:
+  enabled: true
+  sensitivity: medium
+
+  custom_instructions: |
+    This is a VS Code extension written in TypeScript (extension host in src/,
+    React webview in scarce-ui/). Focus on: correctness bugs, error handling
+    in the cairn store and file I/O, webview <-> extension message handling,
+    and missing or weak tests. Skip pure style nitpicks; Prettier and ESLint
+    already enforce formatting and lint rules in CI.
+
+  ignore:
+    files:
+      # Carried over from .coderabbit.yaml
+      - '**/dist/**'
+      - '**/out/**'
+      - '**/build/**'
+      - '**/*.lock'
+      - '**/pnpm-lock.yaml'
+      - '**/package-lock.json'
+      - '**/yarn.lock'
+      - 'scarce-ui/src/components/ui/**'
+      # From .gitignore / .prettierignore / .vscodeignore
+      - '**/.vscode-test/**'
+      - '**/*.vsix'
+      - '**/coverage/**'
+      - '.husky/_/**'
+    head_branches:
+      - 'dependabot/*'
+    pr_labels:
+      - skip-review
