@@ -4,7 +4,7 @@
  * global/repo/file views, resolved handling and ordering.
  */
 import * as assert from 'assert';
-import { buildScopeView, groupByRepo, groupBySeverity, selectScope } from '../scope';
+import { activeFileOf, buildScopeView, groupByRepo, groupBySeverity, selectScope } from '../scope';
 import type { Cairn } from '../../models/cairn';
 import type { FileScopeView, GlobalScopeView, RepoScopeView } from '../../models/scope';
 
@@ -276,5 +276,25 @@ suite('buildScopeView: file', () => {
       ['loose'],
     );
     assert.deepStrictEqual(result.repo, []);
+  });
+});
+
+suite('activeFileOf', () => {
+  test('returns the path of a file: editor', () => {
+    assert.strictEqual(activeFileOf({ scheme: 'file', fsPath: '/repo/a.ts' }, false), '/repo/a.ts');
+  });
+
+  test('no editor means no file', () => {
+    assert.strictEqual(activeFileOf(undefined, false), undefined);
+  });
+
+  test('untitled, output and git schemes mean no file', () => {
+    for (const scheme of ['untitled', 'output', 'git', 'vscode-userdata']) {
+      assert.strictEqual(activeFileOf({ scheme, fsPath: '/repo/a.ts' }, false), undefined, scheme);
+    }
+  });
+
+  test('a diff editor means no file, even with a file: editor', () => {
+    assert.strictEqual(activeFileOf({ scheme: 'file', fsPath: '/repo/a.ts' }, true), undefined);
   });
 });

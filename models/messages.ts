@@ -4,6 +4,7 @@
  */
 
 import type { CairnSeverity } from './cairn';
+import type { ScopeView } from './scope';
 
 /**
  * Captured editor context for a Cairn that is about to be created.
@@ -148,9 +149,33 @@ export interface ChangeRootResultErrorMessage {
  */
 export type ChangeRootResultMessage = ChangeRootResultOkMessage | ChangeRootResultErrorMessage;
 
+/**
+ * Extension to webview: the Cairns or the scope changed. Carries the full view for
+ * the current scope, already filtered and grouped by the extension.
+ */
+export interface CairnsChangedMessage {
+  type: 'cairnsChanged';
+  view: ScopeView;
+}
+
+/**
+ * Extension to webview: the Cairns could not be read (for example, a corrupt file).
+ */
+export interface ListErrorMessage {
+  type: 'listError';
+  /**
+   * Error message describing why the list could not be read.
+   */
+  error: string;
+}
+
 /** Any message the extension can send to the webview. */
 export type ExtensionToWebviewMessage =
-  ShowFormMessage | SaveResultMessage | ChangeRootResultMessage;
+  | ShowFormMessage
+  | SaveResultMessage
+  | ChangeRootResultMessage
+  | CairnsChangedMessage
+  | ListErrorMessage;
 
 /** Any message the webview can send to the extension. */
 export type WebviewToExtensionMessage =

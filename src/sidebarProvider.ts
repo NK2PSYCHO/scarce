@@ -5,11 +5,21 @@
 
 import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
-import type { CairnDraft, ShowFormMessage, WebviewToExtensionMessage } from '../models/messages';
+import type {
+  CairnDraft,
+  CairnsChangedMessage,
+  ListErrorMessage,
+  ShowFormMessage,
+  WebviewToExtensionMessage,
+} from '../models/messages';
 import type { CairnStore } from './store/cairnStore';
 import { handleWebviewMessage } from './handleWebviewMessage';
 import { resolveRootChange } from './changeRoot';
 import type { RootMemory } from './rootMemory';
+import { buildScopeView, type ScopeInput } from './scope';
+
+/** Reports the workspace folders and active file as they are right now. */
+export type ScopeSource = () => ScopeInput;
 
 /**
  * Webview view provider for the Scarce sidebar. Owns the webview lifecycle,
@@ -35,6 +45,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private readonly rootMemory: RootMemory | undefined;
   /** Workspace folder of the current form; the key the chosen root is remembered under. */
   private workspaceFolder: string | undefined;
+  /** Reads the current workspace and active file; without it, {@link SidebarProvider.refresh} does nothing. */
+  private readonly scopeSource: ScopeSource | undefined;
+  /** Counts refreshes so a slow, older one never overwrites a newer result. */
+  private refreshSeq = 0;
 
   /**
    * Creates a new sidebar provider.
@@ -42,11 +56,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * @param extensionUri - The URI of the extension installation directory.
    * @param store - The cairn store for persisting cairns.
    * @param rootMemory - Optional memory of the root chosen per workspace folder.
+   * @param scopeSource - Optional reader of the workspace folders and active file.
    */
-  constructor(extensionUri: vscode.Uri, store: CairnStore, rootMemory?: RootMemory) {
+  constructor(
+    extensionUri: vscode.Uri,
+    store: CairnStore,
+    rootMemory?: RootMemory,
+    scopeSource?: ScopeSource,
+  ) {
     this.extensionUri = extensionUri;
     this.store = store;
     this.rootMemory = rootMemory;
+    this.scopeSource = scopeSource;
   }
 
   /**
@@ -70,10 +91,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         if (this.view === webviewView) {
           this.webviewReady = true;
           void this.flushPendingDraft();
+          void this.refresh();
         }
         return;
       }
       void this.handleMessage(message);
+    });
+    webviewView.onDidChangeVisibility(() => {
+      if (this.view === webviewView && webviewView.visible) {
+        void this.refresh();
+      }
     });
     webviewView.onDidDispose(() => {
       if (this.view === webviewView) {
@@ -94,9 +121,41 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       return;
     }
     const result = await handleWebviewMessage(message, this.store);
+    if (result?.ok === true || message.type === 'cancel') {
+      await this.refresh();
+    }
     if (result !== undefined) {
       await this.view?.webview.postMessage(result);
     }
+  }
+
+  /**
+   * Reads every Cairn, builds the view for the scope as it is now and posts it
+   * to the webview. A read failure is posted as `listError`. Does nothing until
+   * the webview is ready or without a scope source. If a newer refresh starts
+   * while this one is reading, this one's result is dropped.
+   */
+  public async refresh(): Promise<void> {
+    const view = this.view;
+    const scopeSource = this.scopeSource;
+    if (view === undefined || !this.webviewReady || scopeSource === undefined) {
+      return;
+    }
+    const seq = ++this.refreshSeq;
+    let message: CairnsChangedMessage | ListErrorMessage;
+    try {
+      const cairns = await this.store.list();
+      message = { type: 'cairnsChanged', view: buildScopeView(cairns, scopeSource()) };
+    } catch (error) {
+      message = {
+        type: 'listError',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+    if (seq !== this.refreshSeq || this.view !== view) {
+      return;
+    }
+    await view.webview.postMessage(message);
   }
 
   /**

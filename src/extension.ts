@@ -13,6 +13,7 @@ import { SidebarProvider } from './sidebarProvider';
 import { FileCairnStore } from './store/cairnStore';
 import { captureSelection, EmptySelectionError } from './captureSelection';
 import { pickRoot } from './pickRoot';
+import { activeFileOf, type ScopeInput } from './scope';
 import type { RootMemory } from './rootMemory';
 
 /**
@@ -36,7 +37,33 @@ export function activate(context: vscode.ExtensionContext) {
     get: (folder) => context.workspaceState.get<string>(`scarce.root:${folder}`),
     set: (folder, root) => context.workspaceState.update(`scarce.root:${folder}`, root),
   };
-  const sidebar = new SidebarProvider(context.extensionUri, store, rootMemory);
+  const scopeSource = (): ScopeInput => {
+    const editor = vscode.window.activeTextEditor;
+    const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    return {
+      workspaceFolders: (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath),
+      activeFile: activeFileOf(
+        editor
+          ? { scheme: editor.document.uri.scheme, fsPath: editor.document.uri.fsPath }
+          : undefined,
+        activeTab?.input instanceof vscode.TabInputTextDiff,
+      ),
+    };
+  };
+  const sidebar = new SidebarProvider(context.extensionUri, store, rootMemory, scopeSource);
+  const refreshSidebar = (): void => {
+    void sidebar.refresh();
+  };
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(refreshSidebar),
+    vscode.window.tabGroups.onDidChangeTabs(refreshSidebar),
+    vscode.workspace.onDidChangeWorkspaceFolders(refreshSidebar),
+    vscode.window.onDidChangeWindowState((state) => {
+      if (state.focused) {
+        refreshSidebar();
+      }
+    }),
+  );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebar, {
       webviewOptions: { retainContextWhenHidden: true },

@@ -273,3 +273,121 @@ suite('SidebarProvider root memory', () => {
     assert.deepStrictEqual(sets, []);
   });
 });
+
+suite('SidebarProvider.refresh', () => {
+  const CAIRN = {
+    id: '1',
+    rootPath: '/repo',
+    filePath: 'a.ts',
+    codeSnippet: 'x',
+    lineRange: [0, 0] as [number, number],
+    comment: 'c',
+    severity: 'normal' as const,
+  };
+
+  function refreshSetup(
+    list: () => Promise<(typeof CAIRN)[]>,
+    scope = { workspaceFolders: [] as string[], activeFile: undefined as string | undefined },
+  ): { provider: SidebarProvider; fake: FakeView; listCalls: () => number } {
+    let calls = 0;
+    const store = {
+      list: () => {
+        calls++;
+        return list();
+      },
+    } as unknown as CairnStore;
+    const provider = new SidebarProvider(vscode.Uri.file('/ext'), store, undefined, () => scope);
+    const fake = fakeView();
+    provider.resolveWebviewView(fake.view);
+    return { provider, fake, listCalls: () => calls };
+  }
+
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+  test('ready posts the global view when no workspace is open', async () => {
+    const { fake } = refreshSetup(() => Promise.resolve([CAIRN]));
+    fake.receive({ type: 'ready' });
+    await settle();
+    assert.deepStrictEqual(fake.posted, [
+      {
+        type: 'cairnsChanged',
+        view: {
+          kind: 'global',
+          groups: [{ rootPath: '/repo', label: 'repo', cairns: [CAIRN] }],
+        },
+      },
+    ]);
+  });
+
+  test('refresh before ready posts nothing and does not read', async () => {
+    const { provider, fake, listCalls } = refreshSetup(() => Promise.resolve([]));
+    await provider.refresh();
+    assert.deepStrictEqual(fake.posted, []);
+    assert.strictEqual(listCalls(), 0);
+  });
+
+  test('refresh posts again, reading the file each time', async () => {
+    const { provider, fake, listCalls } = refreshSetup(() => Promise.resolve([]));
+    fake.receive({ type: 'ready' });
+    await settle();
+    await provider.refresh();
+    assert.strictEqual(listCalls(), 2);
+    assert.strictEqual(fake.posted.length, 2);
+  });
+
+  test('becoming visible refreshes; hiding does not', async () => {
+    const { fake, listCalls } = refreshSetup(() => Promise.resolve([]));
+    fake.receive({ type: 'ready' });
+    await settle();
+    fake.setVisible(false);
+    await settle();
+    assert.strictEqual(listCalls(), 1);
+    fake.setVisible(true);
+    await settle();
+    assert.strictEqual(listCalls(), 2);
+  });
+
+  test('a read failure posts listError', async () => {
+    const { fake } = refreshSetup(() => Promise.reject(new Error('corrupt')));
+    fake.receive({ type: 'ready' });
+    await settle();
+    assert.deepStrictEqual(fake.posted, [{ type: 'listError', error: 'corrupt' }]);
+  });
+
+  test('an older, slower refresh never overwrites a newer one', async () => {
+    const resolvers: ((cairns: (typeof CAIRN)[]) => void)[] = [];
+    const { provider, fake } = refreshSetup(
+      () => new Promise((resolve) => resolvers.push(resolve)),
+    );
+    fake.receive({ type: 'ready' });
+    await settle();
+    const second = provider.refresh();
+    await settle();
+    resolvers[1]?.([CAIRN]);
+    await second;
+    resolvers[0]?.([]);
+    await settle();
+    assert.strictEqual(fake.posted.length, 1);
+    const posted = fake.posted[0] as { view: { groups: unknown[] } };
+    assert.strictEqual(posted.view.groups.length, 1);
+  });
+
+  test('does not post after the webview is disposed', async () => {
+    const { provider, fake } = refreshSetup(() => Promise.resolve([]));
+    fake.receive({ type: 'ready' });
+    await settle();
+    fake.posted.length = 0;
+    fake.dispose();
+    await provider.refresh();
+    assert.deepStrictEqual(fake.posted, []);
+  });
+
+  test('cancel refreshes the list', async () => {
+    const { fake, listCalls } = refreshSetup(() => Promise.resolve([]));
+    fake.receive({ type: 'ready' });
+    await settle();
+    fake.receive({ type: 'cancel' });
+    await settle();
+    assert.strictEqual(listCalls(), 2);
+  });
+});

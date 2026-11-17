@@ -221,4 +221,38 @@ describe('App', () => {
     expect(screen.getByText('disk full')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
+
+  it('shows nothing until the extension sends a view', () => {
+    setup();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('article')).toBeNull();
+  });
+
+  it('renders the view from cairnsChanged and replaces it on the next one', () => {
+    setup();
+    post({ type: 'cairnsChanged', view: { kind: 'repo', files: [] } });
+    expect(screen.getByRole('status')).toHaveTextContent('No cairns in this repo yet');
+    post({ type: 'cairnsChanged', view: { kind: 'global', groups: [] } });
+    expect(screen.getByRole('status')).toHaveTextContent('No cairns yet');
+  });
+
+  it('shows a listError alert and keeps the last view', () => {
+    setup();
+    post({ type: 'cairnsChanged', view: { kind: 'repo', files: [] } });
+    post({ type: 'listError', error: 'corrupt file' });
+    expect(screen.getByRole('alert')).toHaveTextContent('corrupt file');
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    post({ type: 'cairnsChanged', view: { kind: 'repo', files: [] } });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('returns to the latest view after the form is cancelled', () => {
+    setup();
+    post({ type: 'cairnsChanged', view: { kind: 'repo', files: [] } });
+    post(showForm);
+    expect(screen.queryByRole('status')).toBeNull();
+    post({ type: 'cairnsChanged', view: { kind: 'global', groups: [] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('status')).toHaveTextContent('No cairns yet');
+  });
 });

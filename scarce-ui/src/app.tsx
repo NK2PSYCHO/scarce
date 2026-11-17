@@ -5,8 +5,9 @@
 
 import { useEffect, useState } from 'react';
 import type { CairnDraft } from '@models/messages';
+import type { ScopeView } from '@models/scope';
 import { CairnForm } from '@/components/cairnForm';
-import { FixtureCairnList } from '@/temp/fixtureCairns'; // TEMP-FIXTURE
+import { ScopeViewPanel } from '@/components/scopeView';
 import { useExtensionMessages } from '@/hooks/useExtensionMessages';
 import type { ExtensionClient } from '@/lib/extensionClient';
 
@@ -19,20 +20,33 @@ interface AppProps {
 }
 
 /**
- * Root component of the sidebar webview. Holds the current Cairn draft and any
- * save error, and talks to the extension through the client. Renders nothing
- * until the extension sends a draft. Also applies changeRootResult messages
- * (updates root and path without resetting the form, or shows the error).
+ * Root component of the sidebar webview. Holds the current Cairn draft, any
+ * save error, and the latest view the extension pushed for the current scope.
+ * While a draft is active it shows the add-Cairn form; otherwise it shows the
+ * Cairn view, so closing the form lands on the scope as it is at that moment.
+ * Also applies changeRootResult messages (updates root and path without
+ * resetting the form, or shows the error).
  *
  * @param props - See {@link AppProps}.
- * @returns The add-Cairn form, or `null` while no draft is active.
+ * @returns The add-Cairn form while a draft is active, otherwise the Cairn view.
  */
 export default function App({ client }: AppProps) {
   const [draft, setDraft] = useState<CairnDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draftKey, setDraftKey] = useState(0);
+  const [view, setView] = useState<ScopeView | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   useExtensionMessages((message) => {
+    if (message.type === 'cairnsChanged') {
+      setListError(null);
+      setView(message.view);
+      return;
+    }
+    if (message.type === 'listError') {
+      setListError(message.error);
+      return;
+    }
     if (message.type === 'showForm') {
       setError(null);
       setDraft(message.draft);
@@ -65,8 +79,20 @@ export default function App({ client }: AppProps) {
 
   if (draft === null) {
     return (
-      <div className="p-2">
-        <FixtureCairnList /> {/* TEMP-FIXTURE */}
+      <div className="flex flex-col gap-2 p-2">
+        {listError !== null && (
+          <p role="alert" className="text-sm text-red-500">
+            {listError}
+          </p>
+        )}
+        {view !== null && (
+          <ScopeViewPanel
+            view={view}
+            onNavigate={() => {
+              // Wired in the navigate slice.
+            }}
+          />
+        )}
       </div>
     );
   }

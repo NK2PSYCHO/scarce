@@ -17,7 +17,13 @@ function isExtensionMessage(data: unknown): data is ExtensionToWebviewMessage {
     return false;
   }
   const type = (data as { type?: unknown }).type;
-  return type === 'showForm' || type === 'saveResult' || type === 'changeRootResult';
+  return (
+    type === 'showForm' ||
+    type === 'saveResult' ||
+    type === 'changeRootResult' ||
+    type === 'cairnsChanged' ||
+    type === 'listError'
+  );
 }
 
 /**

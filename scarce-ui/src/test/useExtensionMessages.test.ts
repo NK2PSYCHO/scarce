@@ -76,4 +76,18 @@ describe('useExtensionMessages', () => {
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledExactlyOnceWith(showForm);
   });
+
+  it('calls the handler with cairnsChanged and listError messages', () => {
+    const handler = vi.fn();
+    const changed: ExtensionToWebviewMessage = {
+      type: 'cairnsChanged',
+      view: { kind: 'repo', files: [] },
+    };
+    const failed: ExtensionToWebviewMessage = { type: 'listError', error: 'corrupt' };
+    renderHook(() => useExtensionMessages(handler));
+    post(changed);
+    post(failed);
+    expect(handler).toHaveBeenNthCalledWith(1, changed);
+    expect(handler).toHaveBeenNthCalledWith(2, failed);
+  });
 });

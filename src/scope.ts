@@ -205,3 +205,22 @@ export function buildScopeView(cairns: readonly Cairn[], input: ScopeInput): Sco
     repo,
   };
 }
+
+/**
+ * Decides which file counts as "open" for scoping. Only a plain `file:` text
+ * editor counts; untitled buffers, output channels, diffs and non-text editors
+ * (Settings, Welcome, images) do not.
+ *
+ * @param editor - Scheme and file-system path of the active text editor, or `undefined` if there is none.
+ * @param activeTabIsDiff - Whether the active tab is a diff editor.
+ * @returns The absolute path of the active file, or `undefined` for "no file open".
+ */
+export function activeFileOf(
+  editor: { scheme: string; fsPath: string } | undefined,
+  activeTabIsDiff: boolean,
+): string | undefined {
+  if (editor === undefined || activeTabIsDiff || editor.scheme !== 'file') {
+    return undefined;
+  }
+  return editor.fsPath;
+}
