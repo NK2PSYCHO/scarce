@@ -29,17 +29,27 @@ export interface CairnStore {
    * @returns The saved cairn with its generated id.
    */
   add(input: CairnInput): Promise<Cairn>;
+
+  /**
+   * Reads every stored cairn, resolved ones included, in storage order.
+   * Scope filtering is the caller's job.
+   *
+   * @returns All cairns; empty when nothing has been saved yet.
+   */
+  list(): Promise<Cairn[]>;
 }
 
 /**
  * {@link CairnStore} backed by a single JSON file. Writes go to a temporary
  * file that is renamed over the target, so a crash cannot leave a partial file.
- * Calls to {@link FileCairnStore.add} are serialized through an instance-level
- * queue, so overlapping saves cannot lose records or share the temp file.
+ * Calls to {@link FileCairnStore.add} and {@link FileCairnStore.list} are
+ * serialized through an instance-level queue, so overlapping saves cannot lose
+ * records or share the temp file, and a list sees every earlier call's result.
+ * The queue is per process: other windows share the file but not the queue.
  */
 export class FileCairnStore implements CairnStore {
-  /** Tail of the pending `add` operations; each new add runs after it settles. */
-  private writeQueue: Promise<unknown> = Promise.resolve();
+  /** Tail of the pending operations; each new operation runs after it settles. */
+  private queue: Promise<unknown> = Promise.resolve();
 
   /**
    * @param storePath - Path of the JSON file holding the cairns.
@@ -62,15 +72,53 @@ export class FileCairnStore implements CairnStore {
    * @throws CorruptCairnFileError if the existing file cannot be parsed.
    */
   add(input: CairnInput): Promise<Cairn> {
-    const result = this.writeQueue.then(() => this.append(input));
-    this.writeQueue = result.catch(() => undefined);
+    return this.enqueue(() => this.append(input));
+  }
+
+  /**
+   * Reads every stored cairn. Runs through the same queue as writes. A missing
+   * file counts as an empty store; nothing is written.
+   *
+   * @returns All stored cairns.
+   * @throws CorruptCairnFileError if the file cannot be parsed.
+   */
+  list(): Promise<Cairn[]> {
+    return this.enqueue(() => this.readAll());
+  }
+
+  /**
+   * Runs an operation after every earlier one has settled.
+   *
+   * @param operation - The work to run.
+   * @returns The operation's result. Its failure does not block later calls.
+   */
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.queue.then(operation);
+    this.queue = result.catch(() => undefined);
     return result;
   }
 
   /**
-   * Performs one append. A missing file counts as an empty store. Reads the
-   * existing cairns, writes them plus the new one to a temp file, then renames
-   * it over the store file. Must only be called through the queue in `add`.
+   * Reads and parses the store file. A missing file counts as an empty store.
+   *
+   * @returns The stored cairns.
+   * @throws CorruptCairnFileError if the file cannot be parsed.
+   */
+  private async readAll(): Promise<Cairn[]> {
+    try {
+      return parseCairns(await this.fs.readFile(this.storePath));
+    } catch (error) {
+      if (isNotFound(error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Performs one append. Reads the existing cairns, writes them plus the new
+   * one to a temp file, then renames it over the store file. Must only be
+   * called through the queue.
    *
    * @param input - The cairn data to persist, without an id.
    * @returns The saved cairn with its generated id.
@@ -78,15 +126,7 @@ export class FileCairnStore implements CairnStore {
    */
   private async append(input: CairnInput): Promise<Cairn> {
     await this.fs.mkdir(path.dirname(this.storePath));
-
-    let cairns: Cairn[] = [];
-    try {
-      cairns = parseCairns(await this.fs.readFile(this.storePath));
-    } catch (error) {
-      if (!isNotFound(error)) {
-        throw error;
-      }
-    }
+    const cairns = await this.readAll();
 
     const saved: Cairn = { id: this.generateId(), ...input };
     const tmpPath = `${this.storePath}.tmp`;

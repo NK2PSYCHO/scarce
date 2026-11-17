@@ -27,6 +27,7 @@ interface FakeStore {
 function fakeStore(failWith?: Error): FakeStore {
   const calls: CairnInput[] = [];
   const store: CairnStore = {
+    list: () => Promise.resolve([]),
     add(input: CairnInput): Promise<Cairn> {
       calls.push(input);
       if (failWith) {

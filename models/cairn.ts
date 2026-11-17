@@ -60,4 +60,16 @@ export interface Cairn {
    * Assigned severity level determining sorting and notification behavior.
    */
   severity: CairnSeverity;
+
+  /**
+   * Whether the Cairn has been resolved. Absent on records written before
+   * resolve existed, so absent means `false`. One-way: never set back to `false`.
+   */
+  resolved?: boolean;
+
+  /**
+   * When the Cairn was resolved, as an ISO 8601 UTC timestamp. Present only
+   * when `resolved` is `true`.
+   */
+  resolvedAt?: string;
 }
