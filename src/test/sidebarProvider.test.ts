@@ -391,3 +391,48 @@ suite('SidebarProvider.refresh', () => {
     assert.strictEqual(listCalls(), 2);
   });
 });
+
+suite('SidebarProvider navigateToCairn routing', () => {
+  const CAIRN = {
+    id: '1',
+    rootPath: '/repo',
+    filePath: 'a.ts',
+    codeSnippet: 'x',
+    lineRange: [0, 0] as [number, number],
+    comment: 'c',
+    severity: 'normal' as const,
+  };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+  function routingSetup(folders: string[]) {
+    const handedOff: unknown[] = [];
+    const store = { list: () => Promise.resolve([CAIRN]) } as unknown as CairnStore;
+    const provider = new SidebarProvider(
+      vscode.Uri.file('/ext'),
+      store,
+      undefined,
+      () => ({ workspaceFolders: folders, activeFile: undefined }),
+      (cairn) => {
+        handedOff.push(cairn);
+        return Promise.resolve();
+      },
+    );
+    const fake = fakeView();
+    provider.resolveWebviewView(fake.view);
+    return { fake, handedOff };
+  }
+
+  test('a cairn outside every open folder is handed off to a new window', async () => {
+    const { fake, handedOff } = routingSetup([]);
+    fake.receive({ type: 'navigateToCairn', id: '1' });
+    await settle();
+    assert.deepStrictEqual(handedOff, [CAIRN]);
+  });
+
+  test('a cairn inside an open folder is not handed off', async () => {
+    const { fake, handedOff } = routingSetup(['/repo']);
+    fake.receive({ type: 'navigateToCairn', id: '1' });
+    await settle();
+    assert.deepStrictEqual(handedOff, []);
+  });
+});

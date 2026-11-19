@@ -69,6 +69,17 @@ function isInside(folder: string, file: string): boolean {
 }
 
 /**
+ * Whether a file lies strictly inside at least one of the folders.
+ *
+ * @param file - Absolute file path.
+ * @param folders - Absolute folder paths.
+ * @returns `true` if any folder contains the file.
+ */
+export function isInsideAnyFolder(file: string, folders: readonly string[]): boolean {
+  return folders.some((folder) => isInside(folder, file));
+}
+
+/**
  * Display order: severity (critical, high, normal), then file path, then start
  * line, then end line. Ties keep their original order (stable sort).
  *

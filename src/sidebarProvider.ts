@@ -16,11 +16,15 @@ import type { CairnStore } from './store/cairnStore';
 import { handleWebviewMessage } from './handleWebviewMessage';
 import { resolveRootChange } from './changeRoot';
 import type { RootMemory } from './rootMemory';
-import { buildScopeView, type ScopeInput } from './scope';
+import { absolutePathOf, buildScopeView, isInsideAnyFolder, type ScopeInput } from './scope';
+import type { Cairn } from '../models/cairn';
 import { navigateToCairn } from './navigateToCairn';
 
 /** Reports the workspace folders and active file as they are right now. */
 export type ScopeSource = () => ScopeInput;
+
+/** Opens a Cairn's repo in a new window and arranges for the jump to happen there. */
+export type OpenInNewWindow = (cairn: Cairn) => Promise<void>;
 
 /**
  * Webview view provider for the Scarce sidebar. Owns the webview lifecycle,
@@ -50,6 +54,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private readonly scopeSource: ScopeSource | undefined;
   /** Counts refreshes so a slow, older one never overwrites a newer result. */
   private refreshSeq = 0;
+  /** Used for Cairns outside every open workspace folder (the global view). */
+  private readonly openInNewWindow: OpenInNewWindow | undefined;
 
   /**
    * Creates a new sidebar provider.
@@ -58,17 +64,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * @param store - The cairn store for persisting cairns.
    * @param rootMemory - Optional memory of the root chosen per workspace folder.
    * @param scopeSource - Optional reader of the workspace folders and active file.
+   * @param openInNewWindow - Optional handoff for Cairns outside the open workspace folders.
    */
   constructor(
     extensionUri: vscode.Uri,
     store: CairnStore,
     rootMemory?: RootMemory,
     scopeSource?: ScopeSource,
+    openInNewWindow?: OpenInNewWindow,
   ) {
     this.extensionUri = extensionUri;
     this.store = store;
     this.rootMemory = rootMemory;
     this.scopeSource = scopeSource;
+    this.openInNewWindow = openInNewWindow;
   }
 
   /**
@@ -146,6 +155,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       if (cairn === undefined) {
         void vscode.window.showWarningMessage('Scarce: that cairn no longer exists.');
         await this.refresh();
+        return;
+      }
+      const folders = this.scopeSource?.().workspaceFolders;
+      if (
+        folders !== undefined &&
+        this.openInNewWindow !== undefined &&
+        !isInsideAnyFolder(absolutePathOf(cairn), folders)
+      ) {
+        await this.openInNewWindow(cairn);
         return;
       }
       if (!(await navigateToCairn(cairn))) {
