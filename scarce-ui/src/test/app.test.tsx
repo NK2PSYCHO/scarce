@@ -36,6 +36,7 @@ function setup() {
     ready,
     changeRoot,
     navigateToCairn: vi.fn(),
+    updateCairn: vi.fn(),
   };
   render(<App client={client} />);
   return { saveCairn, cancel, ready, changeRoot };

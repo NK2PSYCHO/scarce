@@ -2,6 +2,7 @@ import * as path from 'path';
 import type { Cairn } from '../../models/cairn';
 import type { CairnInput } from '../../models/messages';
 import { isNotFound, parseCairns } from './parseCairns';
+import { CairnNotFoundError } from './errors';
 
 /**
  * File system operations the cairn store depends on. Injected so tests can
@@ -17,6 +18,12 @@ export interface CairnFs {
   /** Renames or moves a file. */
   rename(from: string, to: string): Promise<unknown>;
 }
+
+/**
+ * Fields of an existing cairn that can be patched. Identity and location
+ * (`id`, `rootPath`, `filePath`, `codeSnippet`, `lineRange`) never change.
+ */
+export type CairnPatch = Partial<Pick<Cairn, 'comment' | 'severity' | 'resolved' | 'resolvedAt'>>;
 
 /**
  * Persistence contract for cairns.
@@ -37,6 +44,17 @@ export interface CairnStore {
    * @returns All cairns; empty when nothing has been saved yet.
    */
   list(): Promise<Cairn[]>;
+
+  /**
+   * Changes fields of one stored cairn in a single write. Fields not in the
+   * patch keep their values.
+   *
+   * @param id - Id of the cairn to change.
+   * @param patch - The fields to overwrite.
+   * @returns The cairn after the change.
+   * @throws CairnNotFoundError if no cairn has this id.
+   */
+  update(id: string, patch: CairnPatch): Promise<Cairn>;
 }
 
 /**
@@ -87,6 +105,19 @@ export class FileCairnStore implements CairnStore {
   }
 
   /**
+   * Patches one cairn. Runs through the same queue as the other operations.
+   *
+   * @param id - Id of the cairn to change.
+   * @param patch - The fields to overwrite.
+   * @returns The cairn after the change.
+   * @throws CairnNotFoundError if no cairn has this id.
+   * @throws CorruptCairnFileError if the file cannot be parsed.
+   */
+  update(id: string, patch: CairnPatch): Promise<Cairn> {
+    return this.enqueue(() => this.applyPatch(id, patch));
+  }
+
+  /**
    * Runs an operation after every earlier one has settled.
    *
    * @param operation - The work to run.
@@ -129,10 +160,40 @@ export class FileCairnStore implements CairnStore {
     const cairns = await this.readAll();
 
     const saved: Cairn = { id: this.generateId(), ...input };
-    const tmpPath = `${this.storePath}.tmp`;
-    const data = JSON.stringify({ version: 1, cairns: [...cairns, saved] }, null, 2);
-    await this.fs.writeFile(tmpPath, data);
-    await this.fs.rename(tmpPath, this.storePath);
+    await this.persist([...cairns, saved]);
     return saved;
+  }
+
+  /**
+   * Performs one patch. Must only be called through the queue.
+   *
+   * @param id - Id of the cairn to change.
+   * @param patch - The fields to overwrite.
+   * @returns The cairn after the change.
+   * @throws CairnNotFoundError if no cairn has this id.
+   */
+  private async applyPatch(id: string, patch: CairnPatch): Promise<Cairn> {
+    const cairns = await this.readAll();
+    const index = cairns.findIndex((c) => c.id === id);
+    const current = cairns[index];
+    if (current === undefined) {
+      throw new CairnNotFoundError(id);
+    }
+    const updated: Cairn = { ...current, ...patch };
+    const next = cairns.slice();
+    next[index] = updated;
+    await this.persist(next);
+    return updated;
+  }
+
+  /**
+   * Writes all cairns to a temp file and renames it over the store file.
+   *
+   * @param cairns - The complete new content.
+   */
+  private async persist(cairns: Cairn[]): Promise<void> {
+    const tmpPath = `${this.storePath}.tmp`;
+    await this.fs.writeFile(tmpPath, JSON.stringify({ version: 1, cairns }, null, 2));
+    await this.fs.rename(tmpPath, this.storePath);
   }
 }

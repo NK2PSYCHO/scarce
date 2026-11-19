@@ -46,9 +46,10 @@ export interface CairnFormProps {
   onCancel: () => void;
 
   /**
-   * Callback invoked when the user asks to pick a different root folder.
+   * Callback invoked when the user asks to pick a different root folder. Omit it
+   * (as the edit form does) to hide the `Change...` button.
    */
-  onChangeRoot: () => void;
+  onChangeRoot?: () => void;
 }
 
 /**
@@ -95,9 +96,11 @@ export function CairnForm({ initialValues, onSubmit, onCancel, onChangeRoot }: C
           <pre className="w-full overflow-x-auto border border-foreground p-2 text-sm">
             {initialValues.rootPath}
           </pre>
-          <Button type="button" onClick={onChangeRoot}>
-            Change...
-          </Button>
+          {onChangeRoot !== undefined && (
+            <Button type="button" onClick={onChangeRoot}>
+              Change...
+            </Button>
+          )}
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm leading-none font-medium text-foreground">File path</p>

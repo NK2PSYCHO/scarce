@@ -4,13 +4,16 @@
  * repo), repo (grouped by file and severity) or file (This file / Repo tabs).
  */
 
-import { useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import type { Cairn, CairnSeverity } from '@models/cairn';
 import type { FileGroup, FileScopeView, RepoGroup, SeverityGroup } from '@models/scope';
 import type { ScopeView } from '@models/scope';
 import { CairnList } from '@/components/cairnList';
 import { CollapsibleSection } from '@/components/collapsibleSection';
 import { cn } from '@/lib/utils';
+
+/** Per-card actions (Edit now; Delete and Resolve later), shared by every list in the view. */
+const ActionsContext = createContext<((cairn: Cairn) => ReactNode) | undefined>(undefined);
 
 /**
  * Props for the ScopeViewPanel component.
@@ -25,6 +28,11 @@ export interface ScopeViewPanelProps {
    * Callback invoked when the user clicks a Cairn to jump to it.
    */
   onNavigate: (cairn: Cairn) => void;
+
+  /**
+   * Optional buttons rendered on every Cairn card.
+   */
+  renderActions?: (cairn: Cairn) => ReactNode;
 }
 
 const SEVERITY_LABEL: Record<CairnSeverity, string> = {
@@ -60,6 +68,7 @@ function SeveritySections({
   groups: SeverityGroup[];
   onNavigate: (cairn: Cairn) => void;
 }) {
+  const renderActions = useContext(ActionsContext);
   return (
     <>
       {groups.map((group) => (
@@ -68,7 +77,7 @@ function SeveritySections({
           title={SEVERITY_LABEL[group.severity]}
           count={group.cairns.length}
         >
-          <CairnList cairns={group.cairns} onNavigate={onNavigate} />
+          <CairnList cairns={group.cairns} onNavigate={onNavigate} renderActions={renderActions} />
         </CollapsibleSection>
       ))}
     </>
@@ -120,6 +129,7 @@ function RepoSections({
   groups: RepoGroup[];
   onNavigate: (cairn: Cairn) => void;
 }) {
+  const renderActions = useContext(ActionsContext);
   if (groups.length === 0) {
     return <EmptyHint>No cairns yet. Select some code and run &quot;Add as Cairn&quot;.</EmptyHint>;
   }
@@ -133,7 +143,7 @@ function RepoSections({
           count={group.cairns.length}
           defaultOpen={false}
         >
-          <CairnList cairns={group.cairns} onNavigate={onNavigate} />
+          <CairnList cairns={group.cairns} onNavigate={onNavigate} renderActions={renderActions} />
         </CollapsibleSection>
       ))}
     </>
@@ -212,7 +222,7 @@ function FileScope({
  * @param props - See {@link ScopeViewPanelProps}.
  * @returns The global, repo or file view.
  */
-export function ScopeViewPanel({ view, onNavigate }: ScopeViewPanelProps) {
+function ScopeViewBody({ view, onNavigate }: Omit<ScopeViewPanelProps, 'renderActions'>) {
   switch (view.kind) {
     case 'global':
       return (
@@ -229,4 +239,19 @@ export function ScopeViewPanel({ view, onNavigate }: ScopeViewPanelProps) {
     case 'file':
       return <FileScope view={view} onNavigate={onNavigate} />;
   }
+}
+
+/**
+ * Renders the Cairn view for the current scope and makes `renderActions` available
+ * to every Cairn list inside it.
+ *
+ * @param props - See {@link ScopeViewPanelProps}.
+ * @returns The global, repo or file view.
+ */
+export function ScopeViewPanel({ view, onNavigate, renderActions }: ScopeViewPanelProps) {
+  return (
+    <ActionsContext.Provider value={renderActions}>
+      <ScopeViewBody view={view} onNavigate={onNavigate} />
+    </ActionsContext.Provider>
+  );
 }

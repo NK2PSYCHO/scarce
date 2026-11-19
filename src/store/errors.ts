@@ -16,3 +16,17 @@ export class CorruptCairnFileError extends Error {
     this.name = 'CorruptCairnFileError';
   }
 }
+
+/**
+ * Thrown when an update targets a Cairn id that is not in the store, for
+ * example because it was deleted from another window.
+ */
+export class CairnNotFoundError extends Error {
+  /**
+   * @param id - The id that was not found.
+   */
+  constructor(id: string) {
+    super(`Cairn ${id} was not found. It may have been deleted.`);
+    this.name = 'CairnNotFoundError';
+  }
+}

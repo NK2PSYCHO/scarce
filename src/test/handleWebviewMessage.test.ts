@@ -28,6 +28,7 @@ function fakeStore(failWith?: Error): FakeStore {
   const calls: CairnInput[] = [];
   const store: CairnStore = {
     list: () => Promise.resolve([]),
+    update: () => Promise.reject(new Error('not used')),
     add(input: CairnInput): Promise<Cairn> {
       calls.push(input);
       if (failWith) {

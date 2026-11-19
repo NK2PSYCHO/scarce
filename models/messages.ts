@@ -180,6 +180,37 @@ export interface NavigateToCairnMessage {
   id: string;
 }
 
+/**
+ * The fields of a Cairn the user can change from the edit form.
+ */
+export interface CairnUpdate {
+  /**
+   * New comment.
+   */
+  comment: string;
+
+  /**
+   * New severity.
+   */
+  severity: CairnSeverity;
+}
+
+/**
+ * Webview to extension: the user saved the edit form. The extension answers with
+ * a `saveResult`, like for a new Cairn.
+ */
+export interface UpdateCairnMessage {
+  type: 'updateCairn';
+  /**
+   * Id of the Cairn being edited.
+   */
+  id: string;
+  /**
+   * The new comment and severity.
+   */
+  update: CairnUpdate;
+}
+
 /** Any message the extension can send to the webview. */
 export type ExtensionToWebviewMessage =
   | ShowFormMessage
@@ -190,4 +221,9 @@ export type ExtensionToWebviewMessage =
 
 /** Any message the webview can send to the extension. */
 export type WebviewToExtensionMessage =
-  SaveCairnMessage | CancelMessage | ReadyMessage | ChangeRootMessage | NavigateToCairnMessage;
+  | SaveCairnMessage
+  | CancelMessage
+  | ReadyMessage
+  | ChangeRootMessage
+  | NavigateToCairnMessage
+  | UpdateCairnMessage;

@@ -3,7 +3,7 @@
  * Typed wrapper around the VS Code webview API for webview-to-extension messages.
  */
 
-import type { CairnInput, WebviewToExtensionMessage } from '@models/messages';
+import type { CairnInput, CairnUpdate, WebviewToExtensionMessage } from '@models/messages';
 
 /**
  * Subset of the VS Code webview API used by the client.
@@ -27,6 +27,8 @@ export interface ExtensionClient {
   changeRoot(): void;
   /** Asks the extension to open the Cairn's file and select its lines. */
   navigateToCairn(id: string): void;
+  /** Asks the extension to save the edited comment and severity of a Cairn. */
+  updateCairn(id: string, update: CairnUpdate): void;
 }
 
 /**
@@ -51,6 +53,9 @@ export function createExtensionClient(api: VsCodeApi): ExtensionClient {
     },
     navigateToCairn(id: string) {
       api.postMessage({ type: 'navigateToCairn', id });
+    },
+    updateCairn(id: string, update: CairnUpdate) {
+      api.postMessage({ type: 'updateCairn', id, update });
     },
   };
 }
