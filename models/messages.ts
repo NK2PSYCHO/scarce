@@ -169,6 +169,17 @@ export interface ListErrorMessage {
   error: string;
 }
 
+/**
+ * Webview to extension: the user clicked a Cairn and wants to jump to its lines.
+ */
+export interface NavigateToCairnMessage {
+  type: 'navigateToCairn';
+  /**
+   * Id of the Cairn to open.
+   */
+  id: string;
+}
+
 /** Any message the extension can send to the webview. */
 export type ExtensionToWebviewMessage =
   | ShowFormMessage
@@ -179,4 +190,4 @@ export type ExtensionToWebviewMessage =
 
 /** Any message the webview can send to the extension. */
 export type WebviewToExtensionMessage =
-  SaveCairnMessage | CancelMessage | ReadyMessage | ChangeRootMessage;
+  SaveCairnMessage | CancelMessage | ReadyMessage | ChangeRootMessage | NavigateToCairnMessage;

@@ -17,6 +17,7 @@ import { handleWebviewMessage } from './handleWebviewMessage';
 import { resolveRootChange } from './changeRoot';
 import type { RootMemory } from './rootMemory';
 import { buildScopeView, type ScopeInput } from './scope';
+import { navigateToCairn } from './navigateToCairn';
 
 /** Reports the workspace folders and active file as they are right now. */
 export type ScopeSource = () => ScopeInput;
@@ -120,12 +121,39 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       await this.handleChangeRoot();
       return;
     }
+    if (message.type === 'navigateToCairn') {
+      await this.handleNavigate(message.id);
+      return;
+    }
     const result = await handleWebviewMessage(message, this.store);
     if (result?.ok === true || message.type === 'cancel') {
       await this.refresh();
     }
     if (result !== undefined) {
       await this.view?.webview.postMessage(result);
+    }
+  }
+
+  /**
+   * Opens the file of the Cairn with the given id and selects its lines. Warns
+   * if the Cairn is gone, the file cannot be opened or the store cannot be read.
+   *
+   * @param id - Id of the Cairn the user clicked.
+   */
+  private async handleNavigate(id: string): Promise<void> {
+    try {
+      const cairn = (await this.store.list()).find((c) => c.id === id);
+      if (cairn === undefined) {
+        void vscode.window.showWarningMessage('Scarce: that cairn no longer exists.');
+        await this.refresh();
+        return;
+      }
+      if (!(await navigateToCairn(cairn))) {
+        void vscode.window.showWarningMessage(`Scarce: could not open ${cairn.filePath}.`);
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      void vscode.window.showWarningMessage(`Scarce: could not open the cairn. ${reason}`);
     }
   }
 

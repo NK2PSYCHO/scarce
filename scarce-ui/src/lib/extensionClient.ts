@@ -25,13 +25,15 @@ export interface ExtensionClient {
   ready(): void;
   /** Asks the extension to open the folder picker for a new root. */
   changeRoot(): void;
+  /** Asks the extension to open the Cairn's file and select its lines. */
+  navigateToCairn(id: string): void;
 }
 
 /**
  * Creates an extension client that wraps VS Code's postMessage API.
  *
  * @param api - VS Code webview API instance.
- * @returns An {@link ExtensionClient} that posts `saveCairn`, `cancel`, `ready` and `changeRoot` messages.
+ * @returns An {@link ExtensionClient} that posts `saveCairn`, `cancel`, `ready`, `changeRoot` and `navigateToCairn` messages.
  */
 export function createExtensionClient(api: VsCodeApi): ExtensionClient {
   return {
@@ -46,6 +48,9 @@ export function createExtensionClient(api: VsCodeApi): ExtensionClient {
     },
     ready() {
       api.postMessage({ type: 'ready' });
+    },
+    navigateToCairn(id: string) {
+      api.postMessage({ type: 'navigateToCairn', id });
     },
   };
 }

@@ -88,8 +88,8 @@ export default function App({ client }: AppProps) {
         {view !== null && (
           <ScopeViewPanel
             view={view}
-            onNavigate={() => {
-              // Wired in the navigate slice.
+            onNavigate={(cairn) => {
+              client.navigateToCairn(cairn.id);
             }}
           />
         )}

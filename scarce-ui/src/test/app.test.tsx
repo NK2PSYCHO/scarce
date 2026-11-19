@@ -30,7 +30,13 @@ function setup() {
   const cancel = vi.fn();
   const ready = vi.fn();
   const changeRoot = vi.fn();
-  const client: ExtensionClient = { saveCairn, cancel, ready, changeRoot };
+  const client: ExtensionClient = {
+    saveCairn,
+    cancel,
+    ready,
+    changeRoot,
+    navigateToCairn: vi.fn(),
+  };
   render(<App client={client} />);
   return { saveCairn, cancel, ready, changeRoot };
 }
